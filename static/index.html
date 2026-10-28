@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chicago Camera Dashboard</title>
+  <meta name="description" content="Live public traffic cameras across the City of Chicago.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -12 24 24'%3E%3Cpath fill='%23e4002b' d='M0-11 2.6-4.5 9.5-5.5 5.2 0 9.5 5.5 2.6 4.5 0 11-2.6 4.5-9.5 5.5-5.2 0-9.5-5.5-2.6-4.5z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="star" viewBox="-12 -12 24 24" aria-hidden="true">
+        <path d="M0-11 2.6-4.5 9.5-5.5 5.2 0 9.5 5.5 2.6 4.5 0 11-2.6 4.5-9.5 5.5-5.2 0-9.5-5.5-2.6-4.5z"/>
+      </svg>
+      <div>
+        <h1>Chicago Camera Dashboard</h1>
+        <p class="subtitle">Public IDOT traffic cameras inside city limits</p>
+      </div>
+    </div>
+
+    <div class="status" aria-live="polite">
+      <span class="chip" id="feed-status"><span class="dot"></span><span class="label">Connecting…</span></span>
+      <span class="chip" id="camera-count">— city cameras</span>
+      <span class="chip mono" id="countdown" title="Time until the next snapshot refresh">—</span>
+      <button class="btn" id="pause-btn" type="button" aria-pressed="false">Pause</button>
+      <button class="btn primary" id="refresh-btn" type="button">Refresh now</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid" id="grid">
+      <section class="card map-card" aria-label="Camera map">
+        <div class="card-head">
+          <h2>Coverage <span class="hint">· click a dot to preview</span></h2>
+          <div class="legend">
+            <span><i class="swatch pinned"></i>On dashboard</span>
+            <span><i class="swatch other"></i>Other cameras</span>
+          </div>
+        </div>
+        <div id="map" class="map"></div>
+      </section>
+      <!-- camera tiles are inserted here -->
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Source: <a href="https://www.gettingaroundillinois.com/" target="_blank" rel="noopener">Illinois DOT</a>
+      public traffic cameras via <a href="https://www.travelmidwest.com/" target="_blank" rel="noopener">Travel Midwest</a>.
+      These are still frames that IDOT re-captures every few minutes, not video.
+    </p>
+    <button class="linklike" id="reset-btn" type="button">Reset to default cameras</button>
+  </footer>
+
+  <dialog class="viewer" id="viewer" aria-labelledby="viewer-title">
+    <div class="viewer-frame">
+      <img id="viewer-img" alt="">
+      <span class="pill" id="viewer-pill"></span>
+      <button class="nav prev" id="viewer-prev" type="button" aria-label="Previous camera">‹</button>
+      <button class="nav next" id="viewer-next" type="button" aria-label="Next camera">›</button>
+    </div>
+    <div class="viewer-info">
+      <div>
+        <h2 id="viewer-title"></h2>
+        <p class="viewer-road" id="viewer-road"></p>
+        <p class="viewer-time mono" id="viewer-time"></p>
+      </div>
+      <div class="viewer-actions">
+        <div class="swap" id="viewer-swap">
+          <label for="swap-slot">Put on dashboard in slot</label>
+          <select id="swap-slot"></select>
+          <button class="btn primary" id="swap-btn" type="button">Swap in</button>
+        </div>
+        <p class="slot-note" id="viewer-slot"></p>
+        <div class="links">
+          <a id="viewer-source" target="_blank" rel="noopener">Travel Midwest ↗</a>
+          <a id="viewer-maps" target="_blank" rel="noopener">Google Maps ↗</a>
+        </div>
+      </div>
+    </div>
+    <button class="close" id="viewer-close" type="button" aria-label="Close">✕</button>
+  </dialog>
+
+  <template id="tile-template">
+    <article class="card cam is-loading">
+      <button class="cam-media" type="button">
+        <img alt="" decoding="async">
+        <span class="slot mono"></span>
+        <span class="pill"></span>
+      </button>
+      <div class="cam-meta">
+        <div class="cam-text">
+          <h3 class="cam-name"></h3>
+          <p class="cam-road"></p>
+        </div>
+        <span class="cam-age mono"></span>
+      </div>
+    </article>
+  </template>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
