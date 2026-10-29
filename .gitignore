@@ -14,3 +14,7 @@ venv/
 
 # Local Claude Code settings
 .claude/
+
+# Local DPS log archive (rebuilt by python3 -m safety.sync)
+data/safety.db
+data/safety.db-*

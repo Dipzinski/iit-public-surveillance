@@ -1,0 +1,40 @@
+{
+  "_note": "Building names that the log mentions without an address (older, truncated or abbreviated entries). Each address is the one the DPS log itself uses most often for that building.",
+  "buildings": {
+    "MCCORMICK STUDENT VILLAGE": "3241 S WABASH",
+    "MCCORMICK STUDENT": "3241 S WABASH",
+    "MSV": "3241 S WABASH",
+    "MCCORMICK TRIBUNE CAMPUS CENTER": "3201 S STATE",
+    "MCCORMICK": "3201 S STATE",
+    "MTCC": "3201 S STATE",
+    "STATE STREET VILLAGE": "3333 S STATE",
+    "ROWE VILLAGE": "3333 S STATE",
+    "SSV": "3333 S STATE",
+    "GALVIN LIBRARY": "35 W 33RD",
+    "GALVIN": "35 W 33RD",
+    "STUART": "10 W 31ST",
+    "STUART BUILDING": "10 W 31ST",
+    "HERMANN UNION BUILDING": "3241 S FEDERAL",
+    "HERMANN HALL": "3241 S FEDERAL",
+    "HERMANN": "3241 S FEDERAL",
+    "TOWER": "10 W 35TH",
+    "IIT TOWER": "10 W 35TH",
+    "FARR HALL": "3300 S MICHIGAN",
+    "KEATING": "3040 S WABASH",
+    "KEATING SPORTS CENTER": "3040 S WABASH",
+    "CROWN HALL": "3360 S STATE",
+    "S R CROWN HALL": "3360 S STATE",
+    "GUNSAULUS HALL": "3140 S MICHIGAN",
+    "CUNNINGHAM HALL": "3100 S MICHIGAN",
+    "KAPLAN INSTITUTE": "3137 S FEDERAL",
+    "MAIN BUILDING": "3300 S FEDERAL",
+    "TECHNOLOGY PARK": "3340 S DEARBORN"
+  },
+  "streets": {
+    "KING": "S DR MARTIN LUTHER KING JR DR",
+    "KING DR": "S DR MARTIN LUTHER KING JR DR",
+    "MLK": "S DR MARTIN LUTHER KING JR DR",
+    "MARTIN LUTHER KING": "S DR MARTIN LUTHER KING JR DR",
+    "LASALLE": "S LA SALLE ST"
+  }
+}

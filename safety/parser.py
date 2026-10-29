@@ -22,7 +22,7 @@ from datetime import datetime
 
 from common import CHICAGO_TZ, nice, title
 
-PARSER_VERSION = 3
+PARSER_VERSION = 4
 
 LABELS = {
     "incident type": "type",
@@ -39,7 +39,8 @@ LABELS = {
 DATETIME_RE = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2,4})\s*(?:at\s*)?(\d{1,2}):(\d{2})\s*([AP])\.?\s*M\.?", re.I)
 BLOCK_TAGS_RE = re.compile(r"(?i)<br\s*/?>|</(?:p|div|li|tr|td|h[1-6]|blockquote)>")
 NO_INCIDENTS_RE = re.compile(r"no (?:reportable )?incidents|nothing to report|no activity to report", re.I)
-DASH_RE = re.compile(r"\s+[–—-]\s+|\s*[–—]\s*")
+# "NAME – ADDRESS", plus "FARR HALL -3300 S MICHIGAN" where the hyphen hugs the address.
+DASH_RE = re.compile(r"\s+[–—-]\s+|\s*[–—]\s*|\s*-\s*(?=\d{1,5}\s*[NSEW]\.?\s)")
 # Sign-offs that follow the last incident; never treat them as wrapped notes.
 CLOSING_RE = re.compile(r"^(thank you|thanks|regards|sincerely|respectfully|stay safe|be safe|"
                         r"department of public safety|illinois tech community|good morning|hello)\b", re.I)

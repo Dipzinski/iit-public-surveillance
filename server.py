@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""IIT Mies Campus Surveillance server.
+"""IIT Public Surveillance server.
 
-Serves the static dashboard and a small JSON API: Illinois DOT traffic cameras
-(this file) plus the safety, crime, traffic and alert feeds in feeds.py.
+Serves the static dashboard and a small JSON API:
+  /api/safety/*   the Illinois Tech Public Safety log archive (safety/ package),
+                  kept in sync in a background thread
+  /api/cameras    Illinois DOT traffic cameras (this file)
+  /api/crime, /api/traffic, /api/alerts   neighborhood add-on feeds (feeds.py)
 Standard library only, so it runs on any Python 3.9+.
+
+    SAFETY_SYNC=0 python3 server.py   # serve the archive without syncing it
 
     python3 server.py            # http://localhost:8000
     PORT=9000 python3 server.py
 """
 
 import errno
+import gzip
 import json
 import os
 import re
@@ -26,6 +32,9 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import feeds
+from safety.dataset import Dataset
+from safety.store import Store
+from safety.sync import Sync
 
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
@@ -192,6 +201,10 @@ FEED = CameraFeed()
 
 # --- HTTP --------------------------------------------------------------------
 
+STORE = Store()
+DATASET = Dataset(STORE)
+SYNC = Sync(STORE, on_change=DATASET.invalidate)
+
 FEED_ROUTES = {
     "/api/site": feeds.site,
     "/api/safety-log": feeds.safety_log,
@@ -225,6 +238,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(BOUNDARY, cache="public, max-age=86400")
         if path.startswith("/api/snapshot/"):
             return self.send_snapshot(urllib.parse.unquote(path[len("/api/snapshot/"):]))
+        if path == "/api/safety/dataset":
+            return self.send_dataset()
+        if path == "/api/safety/status":
+            return self.send_json({**STORE.stats(), "sync": SYNC.status()})
         if path in FEED_ROUTES:
             return self.send_json(FEED_ROUTES[path]())
         if path.startswith("/api/"):
@@ -232,12 +249,41 @@ class Handler(SimpleHTTPRequestHandler):
         self.serving_static = True
         return super().do_GET()
 
+    def accepts_gzip(self):
+        return "gzip" in self.headers.get("Accept-Encoding", "")
+
     def send_json(self, body, status=HTTPStatus.OK, cache="no-store"):
         data = json.dumps(body, separators=(",", ":")).encode()
+        compressed = len(data) > 2048 and self.accepts_gzip()
+        if compressed:
+            data = gzip.compress(data, compresslevel=5)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", cache)
+        if compressed:
+            self.send_header("Content-Encoding", "gzip")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def send_dataset(self):
+        if not STORE.post_count():
+            return self.send_json({"error": "The archive is still being built. Try again shortly.",
+                                   "sync": SYNC.status()}, HTTPStatus.SERVICE_UNAVAILABLE)
+        etag, raw, compressed = DATASET.encoded()
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(HTTPStatus.NOT_MODIFIED)
+            self.send_header("ETag", etag)
+            self.end_headers()
+            return
+        data = compressed if self.accepts_gzip() else raw
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("ETag", etag)
+        if data is compressed:
+            self.send_header("Content-Encoding", "gzip")
         self.end_headers()
         self.wfile.write(data)
 
@@ -299,7 +345,11 @@ def main():
             f"http://localhost:{PORT}.\nTo start another copy, pick a different port: "
             f"PORT={PORT + 1} python3 server.py"
         )
-    print(f"IIT Mies Campus Surveillance running at http://localhost:{PORT}  (Ctrl+C to stop)")
+    if os.environ.get("SAFETY_SYNC", "1") != "0":
+        SYNC.start()
+        if not STORE.post_count():
+            print("Building the Public Safety log archive in the background (about a minute on first run)…")
+    print(f"IIT Public Surveillance running at http://localhost:{PORT}  (Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
