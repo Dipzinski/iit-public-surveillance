@@ -9,9 +9,11 @@ Standard library only, so it runs on any Python 3.9+.
     PORT=9000 python3 server.py
 """
 
+import errno
 import json
 import os
 import re
+import sys
 import threading
 import time
 import urllib.error
@@ -287,8 +289,17 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Chicago Camera Dashboard running at http://localhost:{PORT}")
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+        sys.exit(
+            f"Port {PORT} is already in use. The dashboard may already be running at "
+            f"http://localhost:{PORT}.\nTo start another copy, pick a different port: "
+            f"PORT={PORT + 1} python3 server.py"
+        )
+    print(f"IIT Mies Campus Surveillance running at http://localhost:{PORT}  (Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
