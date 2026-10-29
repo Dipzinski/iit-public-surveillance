@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Chicago Camera Dashboard server.
+"""IIT Mies Campus Surveillance server.
 
-Serves the static dashboard and a small JSON API backed by the Illinois DOT
-public traffic camera feed. Standard library only, so it runs on any Python 3.8+.
+Serves the static dashboard and a small JSON API: Illinois DOT traffic cameras
+(this file) plus the safety, crime, traffic and alert feeds in feeds.py.
+Standard library only, so it runs on any Python 3.9+.
 
     python3 server.py            # http://localhost:8000
     PORT=9000 python3 server.py
@@ -21,6 +22,8 @@ from email.utils import parsedate_to_datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import feeds
 
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
@@ -187,6 +190,15 @@ FEED = CameraFeed()
 
 # --- HTTP --------------------------------------------------------------------
 
+FEED_ROUTES = {
+    "/api/site": feeds.site,
+    "/api/safety-log": feeds.safety_log,
+    "/api/crime": feeds.crime,
+    "/api/traffic": feeds.traffic,
+    "/api/alerts": feeds.alerts,
+}
+
+
 class Handler(SimpleHTTPRequestHandler):
     serving_static = False
 
@@ -211,6 +223,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(BOUNDARY, cache="public, max-age=86400")
         if path.startswith("/api/snapshot/"):
             return self.send_snapshot(urllib.parse.unquote(path[len("/api/snapshot/"):]))
+        if path in FEED_ROUTES:
+            return self.send_json(FEED_ROUTES[path]())
         if path.startswith("/api/"):
             return self.send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
         self.serving_static = True
