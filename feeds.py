@@ -11,27 +11,19 @@ doesn't hammer the upstream APIs.
 """
 
 import html
-import json
 import math
 import re
 import threading
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import xml.etree.ElementTree as ET
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
-from pathlib import Path
-from zoneinfo import ZoneInfo
 
-ROOT = Path(__file__).resolve().parent
-SITE = json.loads((ROOT / "data" / "site.json").read_text())
-CENTER = SITE["center"]
-CHICAGO_TZ = ZoneInfo("America/Chicago")
-USER_AGENT = "IITMiesSurveillance/0.2 (+https://github.com/Dipzinski/iit-public-surveillance)"
-METERS_PER_MILE = 1609.34
+from common import (
+    CENTER, CHICAGO_TZ, FETCH_ERRORS, METERS_PER_MILE, SITE,
+    chicago_now, fetch, fetch_json, miles_from_center, nice, title,
+)
 
 CHICAGO_DATA = "https://data.cityofchicago.org/resource"
 CRIMES = f"{CHICAGO_DATA}/ijzp-q8t2.json"
@@ -44,33 +36,8 @@ IDOT_INCIDENTS = (
 SAFETY_LOG_FEED = "https://blogs.iit.edu/public_safety/feed/"
 NWS_ALERTS = "https://api.weather.gov/alerts/active"
 
-FETCH_ERRORS = (urllib.error.URLError, OSError, ValueError, KeyError, TypeError, ET.ParseError)
-
 
 # --- helpers -----------------------------------------------------------------
-
-def fetch(url, params=None, accept=None):
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
-    headers = {"User-Agent": USER_AGENT}
-    if accept:
-        headers["Accept"] = accept
-    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as resp:
-        return resp.read()
-
-
-def fetch_json(url, params=None, accept=None):
-    return json.loads(fetch(url, params, accept))
-
-
-def miles_from_center(lat, lon):
-    dx = (lon - CENTER["lon"]) * math.cos(math.radians(CENTER["lat"]))
-    return math.hypot(dx, lat - CENTER["lat"]) * 69.05
-
-
-def chicago_now():
-    return datetime.now(CHICAGO_TZ)
-
 
 def socrata_time(value):
     """The city's datasets store naive Chicago local times like 2026-10-19T20:40:00.000."""
@@ -83,16 +50,6 @@ def socrata_where(radius_mi, time_field, since):
         f"within_circle(location,{CENTER['lat']},{CENTER['lon']},{radius_m}) "
         f"AND {time_field} > '{since:%Y-%m-%dT%H:%M:%S}'"
     )
-
-
-def title(text):
-    """Title-case without str.title()'s '35Th St': only letters that start a word go up."""
-    return re.sub(r"\b[a-z]", lambda m: m.group(0).upper(), (text or "").lower())
-
-
-def nice(text):
-    """'ACCIDENT : MOTOR VEHICLE' -> 'Accident – Motor Vehicle'."""
-    return " – ".join(title(part.strip()) for part in (text or "").split(" : ") if part.strip())
 
 
 def block(text):
