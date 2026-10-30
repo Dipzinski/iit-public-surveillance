@@ -11,7 +11,6 @@ const SCANNER_URL = 'https://www.broadcastify.com/listen/ctid/606';
 const state = { site: null, mapView: null, layers: {}, panels: [] };
 
 const PANELS = [
-  { id: 'safety', url: '/api/safety-log', everyMs: 15 * 60_000, render: renderSafety },
   { id: 'crime', url: '/api/crime', everyMs: 30 * 60_000, render: renderCrime },
   { id: 'traffic', url: '/api/traffic', everyMs: 2 * 60_000, render: renderTraffic },
   { id: 'alerts', url: '/api/alerts', everyMs: 2 * 60_000, render: renderAlerts },
@@ -50,26 +49,6 @@ function row(item, ...children) {
   return h('li', {},
     go ? h('button', { type: 'button', class: 'row is-link', onclick: go, title: 'Show on map' }, children)
        : h('div', { class: 'row' }, children));
-}
-
-// ---------- campus safety log (IIT Department of Public Safety) ----------
-
-function renderSafety(data, p) {
-  const incidents = data.posts.flatMap((post) => post.incidents);
-  p.stat.replaceChildren(...stat(incidents.length, `${incidents.length === 1 ? 'incident' : 'incidents'} in ${plural(data.posts.length, 'daily log')}`));
-  p.body.replaceChildren(
-    ...data.posts.map((post) =>
-      h('section', { class: 'log-day' },
-        h('h3', {}, h('a', { href: post.link, target: '_blank', rel: 'noopener' }, post.period)),
-        post.incidents.length
-          ? h('ul', { class: 'rows' }, post.incidents.map((i) =>
-              h('li', {}, h('div', { class: 'row' },
-                h('div', { class: 'row-top' }, h('strong', {}, i.type), i.disposition && h('span', { class: 'tag' }, i.disposition)),
-                h('div', { class: 'row-meta' }, i.place, ' · ', when(i.reported)),
-                i.notes && h('p', { class: 'row-notes' }, i.notes)))))
-          : h('p', { class: 'quiet' }, 'No incidents reported'))),
-  );
-  p.link.href = data.sourceUrl;
 }
 
 // ---------- crime near campus (Chicago Police reports) ----------

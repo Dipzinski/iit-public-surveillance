@@ -7,8 +7,9 @@ import { h, chicagoHour, hourLabel } from './util.js';
 const tooltip = h('div', { class: 'chart-tip', role: 'status', hidden: true });
 document.body.append(tooltip);
 
-function showTip(target, text) {
-  tooltip.textContent = text;
+export function showTip(target, text) {
+  if (text instanceof Node) tooltip.replaceChildren(text);
+  else tooltip.textContent = text;
   tooltip.hidden = false;
   const box = target.getBoundingClientRect();
   const tip = tooltip.getBoundingClientRect();
@@ -17,7 +18,7 @@ function showTip(target, text) {
   tooltip.style.top = `${Math.max(8, box.top - tip.height - 8)}px`;
 }
 
-function hideTip() {
+export function hideTip() {
   tooltip.hidden = true;
 }
 
