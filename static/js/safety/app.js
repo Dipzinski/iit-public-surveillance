@@ -11,6 +11,12 @@ import { initCampusMap } from './campus-map.js';
 import { initFeed, step } from './feed.js';
 import { initFacets } from './facets.js';
 import { initDrawer } from './drawer.js';
+import { initClock } from './clock.js';
+import { initPunchcard } from './punchcard.js';
+import { initFlow } from './flow.js';
+import { initCalendar } from './calendar.js';
+import { initPlaces } from './places.js';
+import { initQuality } from './quality.js';
 
 let loadedAt = 0;
 
@@ -88,6 +94,12 @@ export async function startSafety() {
   initFeed();
   initFacets();
   initDrawer();
+  initClock();
+  initPunchcard();
+  initFlow();
+  initCalendar();
+  initPlaces();
+  initQuality();
   shortcuts();
 
   const status = await getJSON('/api/safety/status').catch(() => null);

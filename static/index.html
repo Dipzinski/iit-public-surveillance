@@ -76,10 +76,16 @@
     <div class="stage">
       <section class="card map-panel" aria-labelledby="campus-map-title">
         <header class="card-head">
-          <h2 id="campus-map-title">Campus map</h2>
-          <span class="hint">circle size = reports · click a place to filter</span>
+          <div class="head-text">
+            <h2 id="campus-map-title">Campus map</h2>
+            <span class="hint">circle size = reports · click a place to filter</span>
+          </div>
+          <button class="btn ghost" id="replay-btn" type="button" aria-pressed="false" title="Play the chosen dates on the map">▶ Replay</button>
         </header>
-        <div class="campus-map" id="campus-map"></div>
+        <div class="map-wrap">
+          <div class="campus-map" id="campus-map"></div>
+          <span class="replay-label mono" id="replay-label" hidden></span>
+        </div>
         <p class="map-note hint" id="map-note"></p>
       </section>
 
@@ -108,6 +114,44 @@
         <p class="hint" id="facet-more"></p>
       </section>
     </div>
+
+    <section class="analytics" aria-label="Patterns">
+      <article class="card clock-card" aria-labelledby="clock-title">
+        <header class="card-head"><h2 id="clock-title">Time of day</h2><span class="hint">click an hour to filter</span></header>
+        <div class="clock" id="clock"></div>
+        <p class="hint card-note" id="clock-note"></p>
+      </article>
+
+      <article class="card punch-card" aria-labelledby="punch-title">
+        <header class="card-head"><h2 id="punch-title">Day × hour</h2><span class="ramp-legend hint" id="punchcard-legend"></span></header>
+        <div class="punchcard" id="punchcard"></div>
+        <p class="hint card-note">Click a cell, a weekday or an hour to filter</p>
+      </article>
+
+      <article class="card flow-card" aria-labelledby="flow-title">
+        <header class="card-head"><h2 id="flow-title">What happens next</h2><span class="hint">incident family → recorded outcome</span></header>
+        <div class="flow" id="flow"></div>
+      </article>
+
+      <article class="card calendar-card" aria-labelledby="calendar-title">
+        <header class="card-head">
+          <div class="head-text"><h2 id="calendar-title">Every day on record</h2><span class="hint" id="calendar-note"></span></div>
+          <span class="ramp-legend hint" id="calendar-legend"></span>
+        </header>
+        <div class="calendar" id="calendar"></div>
+        <p class="card-note"><button class="linklike" id="calendar-years" type="button"></button></p>
+      </article>
+
+      <article class="card places-card" aria-labelledby="places-title">
+        <header class="card-head"><h2 id="places-title">Top locations</h2><span class="hint" id="places-note"></span></header>
+        <ol class="places" id="places"></ol>
+      </article>
+
+      <article class="card quality-card" aria-labelledby="quality-title">
+        <header class="card-head"><h2 id="quality-title">About this archive</h2></header>
+        <div class="quality" id="quality"></div>
+      </article>
+    </section>
   </main>
 
   <aside class="drawer" id="drawer" hidden aria-labelledby="case-title">

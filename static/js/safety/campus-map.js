@@ -1,6 +1,7 @@
 // Campus map: one circle per place, sized by how many incidents match the current
 // filters (area ∝ count, single hue), with the last week's incidents pulsing.
-// Clicking a place filters every other view to it.
+// Clicking a place filters every other view to it. Replay animates the chosen date
+// range: each report appears on its building in its family color, then fades.
 
 import { $, h } from '../util.js';
 import { dataset, filtered, filters, selection, subscribe, toggle } from './state.js';
@@ -12,8 +13,10 @@ let map;
 let placeLayer;
 let pulseLayer;
 let pickLayer;
+let replayLayer;
 let framed = false;
 let lastPick = null;
+let replay = null; // interval id while replaying
 
 export function createBaseMap(el, { zoom = true } = {}) {
   const data = dataset();
@@ -39,6 +42,7 @@ function frame() {
 }
 
 function render() {
+  if (replay) stopReplay(false); // any filter change ends a replay
   const data = dataset();
   const rows = filtered('places');
   const inc = data.incidents;
@@ -115,6 +119,58 @@ function renderPick() {
   lastPick = i;
 }
 
+// ---------- replay ----------
+
+function startReplay() {
+  const data = dataset();
+  const [from, to] = filters.range;
+  const span = to - from + 1;
+  const step = span <= 60 ? 1 : span <= 400 ? 3 : span <= 1500 ? 7 : 30; // days per frame
+  const fade = step * 6;
+  const rows = filtered().filter((i) => data.groups[data.group[i]].mappable).reverse(); // oldest first
+  let cursor = from - 1;
+  let shown = 0;
+  placeLayer.clearLayers();
+  pulseLayer.clearLayers();
+  $('#replay-btn').textContent = '■ Stop';
+  $('#replay-btn').setAttribute('aria-pressed', 'true');
+  $('#replay-label').hidden = false;
+
+  replay = setInterval(() => {
+    cursor += step;
+    if (cursor > to + fade) { stopReplay(); return; }
+    replayLayer.clearLayers();
+    shown = 0;
+    for (const i of rows) {
+      const d = data.day[i];
+      if (d > cursor) break;
+      shown++;
+      if (d <= cursor - fade) continue;
+      const age = (cursor - d) / fade;
+      const place = data.groups[data.group[i]];
+      L.circleMarker([place.lat, place.lon], {
+        radius: 3 + 8 * (1 - age),
+        weight: age < 0.2 ? 2 : 0,
+        color: '#f5f7fa',
+        fillColor: familyColor(data.families[data.incidents.family[i]]),
+        fillOpacity: 0.15 + 0.8 * (1 - age),
+        interactive: false,
+      }).addTo(replayLayer);
+    }
+    $('#replay-label').textContent = `${formatDay(Math.min(cursor, to))} · ${shown.toLocaleString()} of ${rows.length.toLocaleString()} reports`;
+  }, 110);
+}
+
+function stopReplay(redraw = true) {
+  clearInterval(replay);
+  replay = null;
+  replayLayer.clearLayers();
+  $('#replay-btn').textContent = '▶ Replay';
+  $('#replay-btn').setAttribute('aria-pressed', 'false');
+  $('#replay-label').hidden = true;
+  if (redraw) render();
+}
+
 export function initCampusMap() {
   if (!window.L) {
     $('#campus-map').replaceChildren(h('div', { class: 'map-error' }, 'Map library could not load.'));
@@ -124,6 +180,8 @@ export function initCampusMap() {
   placeLayer = L.layerGroup().addTo(map);
   pulseLayer = L.layerGroup().addTo(map);
   pickLayer = L.layerGroup().addTo(map);
+  replayLayer = L.layerGroup().addTo(map);
+  $('#replay-btn').addEventListener('click', () => (replay ? stopReplay() : startReplay()));
   new ResizeObserver(() => map.invalidateSize()).observe($('#campus-map'));
   subscribe(render);
   render();

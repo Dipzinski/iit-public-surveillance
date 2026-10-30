@@ -68,6 +68,14 @@ export function only(key, value) {
   changed();
 }
 
+// Pick one weekday + hour (a punchcard cell), or clear both if it's already the selection.
+export function setDayHour(day, hour) {
+  const same = filters.days.size === 1 && filters.days.has(day) && filters.hours.size === 1 && filters.hours.has(hour);
+  filters.days = new Set(same ? [] : [day]);
+  filters.hours = new Set(same ? [] : [hour]);
+  changed();
+}
+
 export function setQuery(q) {
   if (q === filters.q) return;
   filters.q = q;
@@ -95,24 +103,26 @@ const columns = () => ({
   disps: data.incidents.disp,
 });
 
-// Incident indexes (newest first) that pass every filter except `except`.
+// Incident indexes (newest first) that pass every filter except the dimension(s) in `except`
+// (a key like 'hours', or a list like ['days', 'hours']).
 export function filtered(except = null) {
-  const key = except || '*';
+  const skip = new Set(Array.isArray(except) ? except : except ? [except] : []);
+  const key = [...skip].sort().join('+') || '*';
   if (cache.has(key)) return cache.get(key);
   const cols = columns();
   const terms = filters.q.toLowerCase().split(/\s+/).filter(Boolean);
   const [from, to] = filters.range || [-Infinity, Infinity];
   const out = [];
   for (const i of data.newest) {
-    if (except !== 'range' && (data.day[i] < from || data.day[i] > to)) continue;
+    if (!skip.has('range') && (data.day[i] < from || data.day[i] > to)) continue;
     let ok = true;
     for (const [set, column] of Object.entries(cols)) {
-      if (except !== set && filters[set].size && !filters[set].has(column[i])) { ok = false; break; }
+      if (!skip.has(set) && filters[set].size && !filters[set].has(column[i])) { ok = false; break; }
     }
     if (!ok) continue;
-    if (except !== 'hours' && filters.hours.size && !filters.hours.has(data.hour[i])) continue;
-    if (except !== 'days' && filters.days.size && !filters.days.has(data.dow[i])) continue;
-    if (except !== 'q' && terms.length && !terms.every((term) => data.text[i].includes(term))) continue;
+    if (!skip.has('hours') && filters.hours.size && !filters.hours.has(data.hour[i])) continue;
+    if (!skip.has('days') && filters.days.size && !filters.days.has(data.dow[i])) continue;
+    if (!skip.has('q') && terms.length && !terms.every((term) => data.text[i].includes(term))) continue;
     out.push(i);
   }
   cache.set(key, out);

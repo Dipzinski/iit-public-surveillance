@@ -207,7 +207,6 @@ SYNC = Sync(STORE, on_change=DATASET.invalidate)
 
 FEED_ROUTES = {
     "/api/site": feeds.site,
-    "/api/safety-log": feeds.safety_log,
     "/api/crime": feeds.crime,
     "/api/traffic": feeds.traffic,
     "/api/alerts": feeds.alerts,

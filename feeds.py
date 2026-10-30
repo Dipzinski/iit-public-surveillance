@@ -1,24 +1,21 @@
-"""Public data feeds around the watched site (see data/site.json).
+"""Neighborhood add-on feeds around the watched site (see data/site.json).
+The Public Safety log itself lives in the safety/ package.
 
 Each feed is pulled from an official public source, trimmed to the area around
 the site, summarized for the dashboard, and cached so a page full of panels
 doesn't hammer the upstream APIs.
 
-    safety_log()  Illinois Tech Department of Public Safety daily crime/incident log
     crime()       Chicago Police Department crime reports (City of Chicago Data Portal)
     traffic()     live IDOT roadway incidents + City of Chicago traffic crash reports
     alerts()      National Weather Service alerts + City of Chicago 311 service requests
 """
 
-import html
 import math
 import re
 import threading
 import time
-import xml.etree.ElementTree as ET
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 
 from common import (
     CENTER, CHICAGO_TZ, FETCH_ERRORS, METERS_PER_MILE, SITE,
@@ -33,7 +30,6 @@ IDOT_INCIDENTS = (
     "https://services2.arcgis.com/aIrBD8yn1TDTEXoz/ArcGIS/rest/services/"
     "Illinois_Roadway_Incidents/FeatureServer/0/query"
 )
-SAFETY_LOG_FEED = "https://blogs.iit.edu/public_safety/feed/"
 NWS_ALERTS = "https://api.weather.gov/alerts/active"
 
 
@@ -122,86 +118,6 @@ def cached(key, ttl, loader):
         "fetchedAt": datetime.fromtimestamp(entry["at"], timezone.utc).isoformat(),
         "stale": entry["error"] is not None,
     }
-
-
-# --- Illinois Tech Public Safety log ------------------------------------------
-
-LOG_FIELDS = {
-    "incident type": "type",
-    "location": "location",
-    "date/time reported": "reported",
-    "notes": "notes",
-    "disposition": "disposition",
-}
-
-
-def _plain(fragment):
-    text = html.unescape(re.sub(r"<[^>]+>", "", fragment))
-    return text.replace("\xa0", " ").strip()
-
-
-def _parse_log_post(body):
-    """Posts list incidents as runs of 'Field: value' paragraphs, each starting at Incident Type."""
-    incidents, current = [], None
-    for paragraph in re.findall(r"<p[^>]*>(.*?)</p>", body, re.S):
-        key, sep, value = _plain(paragraph).partition(":")
-        field = LOG_FIELDS.get(key.strip().lower()) if sep else None
-        if field == "type":
-            current = {}
-            incidents.append(current)
-        if field and current is not None:
-            current[field] = value.strip()
-    return incidents
-
-
-def _log_incident(raw):
-    location = raw.get("location", "")
-    parts = [p.strip() for p in location.split(" : ") if p.strip()]
-    on_mies = "MIES" in location.upper()
-    if parts[:2] and "ILLINOIS INSTITUTE" in parts[0].upper():
-        parts = parts[2:]  # drop "ILLINOIS INSTITUTE OF TECHNOLOGY : MIES CAMPUS"
-    area = title(parts[0]) if len(parts) > 1 else ""
-    place = title(" · ".join(parts[1:] if len(parts) > 1 else parts))
-
-    reported = raw.get("reported", "")
-    try:
-        reported = datetime.strptime(reported, "%m/%d/%Y %I:%M %p").replace(tzinfo=CHICAGO_TZ).isoformat()
-    except ValueError:
-        pass
-
-    return {
-        "type": nice(raw.get("type")),
-        "place": place or "Location not given",
-        "area": area,
-        "reported": reported,
-        "notes": raw.get("notes", ""),
-        "disposition": nice(raw.get("disposition")),
-        "onMies": on_mies or "ILLINOIS INSTITUTE" not in location.upper(),
-    }
-
-
-def _load_safety_log():
-    root = ET.fromstring(fetch(SAFETY_LOG_FEED))
-    content_tag = "{http://purl.org/rss/1.0/modules/content/}encoded"
-    posts = []
-    for item in root.iter("item"):
-        title = item.findtext("title", "").strip()
-        incidents = [_log_incident(raw) for raw in _parse_log_post(item.findtext(content_tag, ""))]
-        published = item.findtext("pubDate")
-        posts.append({
-            "title": title,
-            "period": title.split(" for ", 1)[-1].rstrip(". ") if " for " in title else title,
-            "link": item.findtext("link", ""),
-            "published": parsedate_to_datetime(published).isoformat() if published else "",
-            # The dashboard only watches the Mies campus.
-            "incidents": [i for i in incidents if i["onMies"]],
-            "otherCampuses": sum(1 for i in incidents if not i["onMies"]),
-        })
-    return {"source": "Illinois Tech Department of Public Safety", "sourceUrl": "https://blogs.iit.edu/public_safety/", "posts": posts}
-
-
-def safety_log():
-    return cached("safety-log", 15 * 60, _load_safety_log)
 
 
 # --- Chicago Police crime reports ----------------------------------------------

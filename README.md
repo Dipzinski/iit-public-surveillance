@@ -1,35 +1,45 @@
-# IIT Mies Campus Surveillance
+# IIT Public Surveillance
 
-A surveillance-style dashboard for **Illinois Tech's Mies Campus** in
-Bronzeville, Chicago. It uses only public data and puts five feeds on one
-screen: nearby traffic cameras, the campus Public Safety log, Chicago Police
-crime reports, live traffic incidents and crash patterns, and weather/siren
-alerts with city service activity.
+An interactive intelligence dashboard built on **every Illinois Tech Department of
+Public Safety report for the Mies Campus since 2014**: about 5,000 incidents parsed
+from 3,000+ daily log posts, placed on a campus map, and explorable through linked
+charts. Traffic cameras, Chicago Police data, live traffic and weather alerts sit
+alongside as add-ons.
 
-![IIT Mies Campus Surveillance dashboard: camera grid, watch map, and campus safety, crime, traffic and alert panels](docs/screenshot.jpg)
+![IIT Public Surveillance: KPI tiles, a brushable 12-year timeline stacked by incident family, the campus map, the report feed and the breakdown panel](docs/screenshot.jpg)
 
-## What's on the dashboard
+## What you can do
 
-| Panel | What it shows | Source | How fresh |
-| --- | --- | --- | --- |
-| **Cameras** | The 6 IDOT expressway cameras closest to campus. Each updates on its own and shows a Live, Delayed or Offline badge. Click a tile to enlarge it. | Illinois DOT | Every 30 s (IDOT re-captures about every 3 min) |
-| **Watch map** | Campus outline, a ½-mile ring, camera pins, crime reports, crashes, and live traffic incidents, each layer toggleable. Click any camera dot to preview it or swap it onto the grid. | All of the below | — |
-| **Campus safety log** | Incidents from IIT's daily crime/incident log, filtered to the Mies campus: type, building or street, time, notes, disposition | Illinois Tech Department of Public Safety | Posted each weekday morning |
-| **Crime near campus** | Police reports within ½ mile over 30 days, broken down by type and hour of day, with the most recent reports. Click a report to jump the map there. | Chicago Police Department via the City of Chicago Data Portal | About 7 days behind (city policy) |
-| **Traffic** | Live congestion, crashes, closures and event traffic within 2 mi, plus crash patterns within ½ mile over 90 days: by hour, injuries, hit-and-runs, and worst streets | Illinois DOT roadway incidents; City of Chicago crash reports | Live (every 2 min); crashes about 1 day behind |
-| **Alerts & dispatch** | National Weather Service warnings for campus, which are what trigger the city's outdoor sirens. Also 311 service requests near campus, IIT Public Safety phone numbers, and an IIT Alert sign-up link. | National Weather Service; City of Chicago 311 | Live; 311 same-day |
+- **Filter by anything.** Every chart is a filter, and every other view updates
+  instantly: a date range, an incident family, a type, a building, an outcome, an
+  hour, or a weekday. Each view ignores its own filter so you can still see the
+  alternatives. The whole state lives in the URL, so any view can be shared.
+- **Search 12 years of officer notes** from the top bar (`/`), with matches
+  highlighted.
+- **Brush the timeline.** The bottom strip shows the whole archive; drag across it
+  to pick dates. The chart above shows those dates stacked by family, binned by
+  day, week or month to fit. Click a column to zoom in.
+- **Campus map.** Each place is sized by its report count, and incidents from the
+  last 7 days pulse. **Replay** animates the chosen dates, with each report
+  appearing on its building in its family color.
+- **Case files.** Open any report (or step through with `j`/`k`) to see the full
+  record, how precisely it was placed, a mini-map, the location's history since
+  2014, and a link to the original log post.
+- **Patterns:**
+  - a 24-hour radial clock with a "now" hand
+  - a day × hour punchcard
+  - a calendar heatmap of every day on record
+  - an alluvial flow from incident family to outcome
+  - top locations with 12-year sparklines and year-over-year trends
+- **KPIs:** this week vs. a typical week (meter), the last 30 days and year to
+  date vs. last year, the most common family lately, and days since the last
+  incident of whatever you've filtered to.
+- **Export** the current view as CSV.
+- **Live around campus (add-ons).** IDOT traffic cameras, Chicago Police reports
+  within ½ mile, live traffic incidents and crash patterns, and National Weather
+  Service alerts with 311 requests.
 
-A severe weather warning also shows as a banner across the top of the page.
-
-### About "dispatch"
-
-Chicago has no public live police or fire dispatch feed. Police radio has been
-encrypted since 2024, and the city's 911 dispatch system is internal only.
-The dashboard is upfront about this. It shows the closest public signals
-(live IDOT incidents and same-day 311 work orders) and links to public
-fire/EMS scanner audio instead of making anything up.
-
-## Run it locally
+## Run it
 
 Needs only **Python 3.9 or newer**. There's nothing to install and no build step.
 
@@ -39,77 +49,87 @@ cd iit-public-surveillance
 python3 server.py
 ```
 
-Then open http://localhost:8000. To use a different port, run `PORT=9000 python3 server.py`.
+Open http://localhost:8000. On the first run the server downloads the whole Public
+Safety log in the background (31 requests, about a minute) while the page shows
+progress. After that it checks for new posts every 15 minutes.
 
-## Changing what it watches
-
-Everything location-specific is in [`data/site.json`](data/site.json):
-
-- `center`, `campusOutline`: where the site is and the outline drawn on the map
-- `watchRadiusMi`: radius for crime, crash and 311 data (0.5 mi)
-- `cameraAreaMi`, `trafficAreaMi`: how far out to look for cameras and live incidents (2 mi)
-- `defaultCameras`, `slots`: which cameras fill the grid at first, and how many
-- `landmarks`, `contacts`: map labels and emergency phone numbers
+```bash
+python3 -m unittest discover -s tests -t .   # 26 tests
+python3 -m safety.sync --rebuild             # re-parse the stored posts after changing the parser
+PORT=9000 python3 server.py                  # another port
+```
 
 ## How it works
 
 ```
-Browser (static/)            server.py + feeds.py              Public sources
-  js/main.js     clock  ──►  /api/site        data/site.json
-  js/cameras.js  grid   ──►  /api/cameras     IDOT camera list (ArcGIS)
-                        ──►  /api/snapshot/id IDOT camera image
-  js/panels.js   panels ──►  /api/safety-log  IIT Public Safety RSS
-                        ──►  /api/crime       Chicago crimes (Socrata API)
-                        ──►  /api/traffic     IDOT incidents (ArcGIS) + Chicago crashes
-                        ──►  /api/alerts      NWS alerts API + Chicago 311
-  js/map.js      map    ──►  Leaflet + Esri basemap
-  js/charts.js   bar and hour charts
+IIT Public Safety blog ──► safety/sync.py ──► SQLite archive ──► safety/parser.py ──► safety/geocode.py
+ (WordPress JSON API)       backfill, then      raw HTML kept      every log format      street model + learned
+                            every 15 min        for re-parsing     since 2014            building addresses
+                                                                                              │
+                     browser ◄── /api/safety/dataset (all reports, columnar, 189 KB gzipped) ◄─┘
+       crossfilter state · D3 charts · Leaflet maps · virtual-scrolling feed
 ```
 
-**Backend.** Uses only the Python standard library.
-- `feeds.py` pulls each source and trims it to the area around campus, using
-  geographic queries where the API supports them. It summarizes the data
-  (counts by type and by hour, top streets) and caches each feed for its own
-  time. If a source stops responding, it keeps serving the last good copy.
-- The IIT Public Safety log is a blog. Its RSS feed is parsed into
-  structured incidents (type, location, time, notes, disposition), and
-  incidents from other IIT campuses are dropped.
-- `server.py` fetches camera images itself, because IDOT's image server
-  rejects requests carrying another site's `Referer`. It relays images only
-  for known camera IDs, so it can't be used as an open proxy.
+**Parsing a decade of formats.** Since 2019 the log uses labeled fields
+(`Incident Type / Location / Date/Time Reported / Notes / Disposition`). In
+2014–2018 the location and time share one unlabeled line, inside markup pasted
+from other apps. The parser works on text lines rather than tags, so it reads
+every era. It also recognizes "no incidents" days (512 of them) and the safety
+tips from 2011–2013. Real posts from each era are test fixtures.
 
-**Frontend.** Plain HTML, CSS and ES modules, with no framework and no build step.
-- Text from outside feeds is always inserted as text, never as HTML.
-- Camera frames are decoded off-screen before they're shown. A late frame
-  is dropped if you've already swapped that tile to another camera.
-- One shared clock refreshes each panel on its own schedule, and **Pause**
-  stops everything at once.
-- Charts are plain HTML with hover tooltips and a hidden table for screen
-  readers. Map colors come from a palette checked for color-blind safety, and
-  status markers always pair color with an icon and a label.
+**Geocoding without a geocoding service.**
+`tools/calibrate_streets.py` fits where every street near campus runs from 53,000
+geotagged Chicago Police block records. Given that, `safety/geocode.py` places:
+- addresses ("3101 S Wabash")
+- intersections ("33rd & Dearborn")
+- block ranges ("Federal : 3200–3300 South")
+- corners mentioned in notes ("robbed at 31st & State")
+- building names, using addresses it learns from the log itself whenever a
+  building appears with one (plus a small alias file for truncated or old names)
+
+78% of reports are placed at an address, building, corner or block, and every
+report records how precisely it was placed.
+
+**A fast browser.** The server sends every report once as parallel arrays with
+lookup tables, gzipped and ETag-cached. The page then does all filtering itself:
+- Each view asks the shared state for the reports matching every filter but its
+  own, cached per filter version.
+- Chicago local time is computed with the DST rule directly, so 5,000 rows don't
+  each need an `Intl` call.
+- The feed keeps only the rows on screen in the DOM.
+
+**Stack.** Python standard library (`http.server`, `sqlite3`, `urllib`) on the
+backend. On the frontend, buildless ES modules with D3 7 and Leaflet. Chart
+colors come from a palette checked for color-blind safety, with family colors in
+a fixed order.
+
+## Project layout
+
+```
+server.py              HTTP routes, camera relay, sync thread
+safety/                Public Safety archive: sync, store, parser, geocode, taxonomy, dataset
+feeds.py               neighborhood add-ons: crime, traffic, alerts, 311
+common.py              shared helpers
+tools/                 street-model calibration
+data/site.json         campus location, outline, default cameras, contacts
+data/geo/              streets.json (calibrated), aliases.json (building names)
+static/js/safety/      main stage: state, timeline, map, feed, drawer, analytics
+static/js/live/        add-on section boot
+tests/                 parser, geocoder and API tests with real fixtures
+```
 
 ## Data sources
 
 | Data | Source |
 | --- | --- |
-| Traffic cameras | [Illinois DOT public traffic camera feed](https://services2.arcgis.com/aIrBD8yn1TDTEXoz/ArcGIS/rest/services/TrafficCamerasTM_Public/FeatureServer/0) |
-| Live roadway incidents | [Illinois DOT roadway incidents](https://services2.arcgis.com/aIrBD8yn1TDTEXoz/ArcGIS/rest/services/Illinois_Roadway_Incidents/FeatureServer/0) |
-| Campus safety log | [Illinois Tech Department of Public Safety daily logs](https://blogs.iit.edu/public_safety/) |
-| Crime reports | [City of Chicago: Crimes – 2001 to Present](https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2) |
-| Crash reports | [City of Chicago: Traffic Crashes – Crashes](https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if) |
-| 311 requests | [City of Chicago: 311 Service Requests](https://data.cityofchicago.org/Service-Requests/311-Service-Requests/v6vf-nfxy) |
+| Campus safety log | [Illinois Tech Department of Public Safety](https://blogs.iit.edu/public_safety/) (public WordPress API) |
+| Street model | [Chicago Police crime reports](https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2) (block-level locations) |
+| Cameras, live incidents | [Illinois DOT](https://www.gettingaroundillinois.com/) public ArcGIS layers |
+| Crime, crashes, 311 | [City of Chicago Data Portal](https://data.cityofchicago.org/) |
 | Weather alerts | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) |
-| City limits | [City of Chicago: Boundaries – City](https://data.cityofchicago.org/resource/qqq8-j68g.geojson) |
-| Basemap | Esri World Dark Gray Canvas and © OpenStreetMap contributors |
-
-## Roadmap
-
-- [ ] Notifications when a new campus safety log incident or weather warning appears
-- [ ] Trend lines: this month vs. the same month last year for crime and crashes
-- [ ] Game-day mode for White Sox home games at nearby Rate Field
-- [ ] A more precise campus outline from IIT's facilities map
+| Basemap | Esri World Dark Gray Canvas, © OpenStreetMap contributors |
 
 ---
 
-Student project built only from public data. Not affiliated with or endorsed
-by Illinois Institute of Technology.
+Student project built only from public data. Not affiliated with or endorsed by
+Illinois Institute of Technology.
