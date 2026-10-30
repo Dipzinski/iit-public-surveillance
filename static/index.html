@@ -33,6 +33,7 @@
     </label>
 
     <div class="status">
+      <button class="btn ghost palette-btn" id="palette-btn" type="button" title="Jump to anything (⌘K)">Jump to <kbd>⌘K</kbd></button>
       <span class="chip mono" id="archive-status" aria-live="polite">Loading archive…</span>
       <button class="btn primary" id="archive-update" type="button" hidden>New reports · reload</button>
     </div>
@@ -168,7 +169,7 @@
     <header class="live-head">
       <div>
         <h2 id="live-title">Live around campus</h2>
-        <p class="subtitle">Traffic cameras, neighborhood crime, traffic and weather alerts</p>
+        <p class="subtitle">The best camera angles on campus around a live feed of safety reports, traffic, weather and city requests</p>
       </div>
       <div class="status">
         <span class="chip" id="feed-status"><span class="dot"></span><span class="label">Connecting…</span></span>
@@ -178,60 +179,28 @@
       </div>
     </header>
 
-    <div class="layout">
-      <section class="cams" aria-labelledby="cams-title">
-        <div class="section-head">
-          <h2 id="cams-title">Cameras</h2>
-          <span class="section-sub">IDOT expressway cameras · <span id="camera-count">—</span></span>
-        </div>
-        <div class="grid" id="camera-grid"></div>
+    <div class="ops">
+      <div class="ops-cams" id="cam-left" aria-label="Campus cameras"></div>
+
+      <section class="card stream" aria-labelledby="stream-title">
+        <header class="card-head">
+          <div class="head-text"><h2 id="stream-title">Live feed</h2><span class="hint" id="stream-note"></span></div>
+        </header>
+        <div class="stream-filters" id="stream-filters" role="group" aria-label="Show"></div>
+        <div class="stream-list" id="stream-list"><p class="quiet">Loading…</p></div>
       </section>
 
-      <section class="card map-card" aria-label="Neighborhood map">
-        <div class="card-head">
-          <h2>Neighborhood map</h2>
-          <span class="hint">dashed ring = ½ mile from campus</span>
-        </div>
-        <div id="map" class="map"></div>
+      <div class="ops-cams" id="cam-right" aria-label="Approach cameras"></div>
+
+      <section class="card neighborhood" aria-labelledby="neighborhood-title">
+        <header class="card-head"><h2 id="neighborhood-title">On campus vs. the blocks around it</h2></header>
+        <div class="ctx-body" id="neighborhood-body"><p class="quiet">Loading…</p></div>
       </section>
 
-      <div class="panels">
-        <article class="card panel" id="panel-crime" aria-labelledby="crime-title">
-          <header class="panel-head">
-            <div>
-              <h2 id="crime-title">Chicago Police reports nearby</h2>
-              <p class="panel-source">Within ½ mile, not just campus</p>
-            </div>
-            <p class="panel-stat"></p>
-          </header>
-          <div class="panel-body"><p class="quiet">Loading…</p></div>
-          <footer class="panel-foot"><a class="panel-link" target="_blank" rel="noopener">Source ↗</a><span class="panel-updated mono"></span></footer>
-        </article>
-
-        <article class="card panel" id="panel-traffic" aria-labelledby="traffic-title">
-          <header class="panel-head">
-            <div>
-              <h2 id="traffic-title">Traffic</h2>
-              <p class="panel-source">IDOT live incidents · city crash reports</p>
-            </div>
-            <p class="panel-stat"></p>
-          </header>
-          <div class="panel-body"><p class="quiet">Loading…</p></div>
-          <footer class="panel-foot"><a class="panel-link" target="_blank" rel="noopener">Source ↗</a><span class="panel-updated mono"></span></footer>
-        </article>
-
-        <article class="card panel" id="panel-alerts" aria-labelledby="alerts-title">
-          <header class="panel-head">
-            <div>
-              <h2 id="alerts-title">Alerts &amp; dispatch</h2>
-              <p class="panel-source">Weather service · city 311 · contacts</p>
-            </div>
-            <p class="panel-stat"></p>
-          </header>
-          <div class="panel-body"><p class="quiet">Loading…</p></div>
-          <footer class="panel-foot"><a class="panel-link" target="_blank" rel="noopener">Source ↗</a><span class="panel-updated mono"></span></footer>
-        </article>
-      </div>
+      <section class="card dispatch" aria-labelledby="dispatch-title">
+        <header class="card-head"><h2 id="dispatch-title">Dispatch &amp; contacts</h2></header>
+        <div class="ctx-body" id="dispatch-body"><p class="quiet">Loading…</p></div>
+      </section>
     </div>
   </section>
 
@@ -241,10 +210,22 @@
       and incidents, City of Chicago open data, and the National Weather Service. Student project, not affiliated
       with Illinois Tech.
     </p>
-    <button class="linklike" id="reset-btn" type="button">Reset to default cameras</button>
   </footer>
 
+  <div class="ticker" id="ticker" hidden>
+    <span class="ticker-label mono">Live</span>
+    <div class="ticker-viewport"></div>
+    <button class="ticker-btn" id="ticker-pause" type="button" aria-label="Pause ticker">❚❚</button>
+  </div>
+
   <div class="toast" id="toast" role="status" hidden></div>
+
+  <dialog class="palette" id="palette" aria-label="Jump to">
+    <input id="palette-input" type="text" placeholder="Jump to a building, incident type, year or camera…" autocomplete="off"
+           spellcheck="false" role="combobox" aria-controls="palette-list" aria-expanded="true">
+    <ul class="palette-list" id="palette-list" role="listbox"></ul>
+    <p class="hint palette-foot"><kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>↵</kbd> go · <kbd>Esc</kbd> close</p>
+  </dialog>
 
   <dialog class="viewer" id="viewer" aria-labelledby="viewer-title">
     <div class="viewer-frame">
@@ -260,12 +241,6 @@
         <p class="viewer-time mono" id="viewer-time"></p>
       </div>
       <div class="viewer-actions">
-        <div class="swap" id="viewer-swap">
-          <label for="swap-slot">Put on the grid in slot</label>
-          <select id="swap-slot"></select>
-          <button class="btn primary" id="swap-btn" type="button">Swap in</button>
-        </div>
-        <p class="slot-note" id="viewer-slot"></p>
         <div class="links">
           <a id="viewer-source" target="_blank" rel="noopener">Travel Midwest ↗</a>
           <a id="viewer-maps" target="_blank" rel="noopener">Google Maps ↗</a>
@@ -275,23 +250,6 @@
     <button class="close" id="viewer-close" type="button" aria-label="Close">✕</button>
   </dialog>
 
-  <template id="tile-template">
-    <article class="card cam is-loading">
-      <button class="cam-media" type="button">
-        <img alt="" decoding="async">
-        <span class="slot mono"></span>
-        <span class="pill"></span>
-      </button>
-      <div class="cam-meta">
-        <div class="cam-text">
-          <h3 class="cam-name"></h3>
-          <p class="cam-road"></p>
-          <p class="cam-site"></p>
-        </div>
-        <span class="cam-age mono"></span>
-      </div>
-    </article>
-  </template>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>

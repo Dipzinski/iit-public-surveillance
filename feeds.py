@@ -338,6 +338,8 @@ def _load_service_requests():
             "created": socrata_time(r["created_date"]).isoformat(),
             "address": title(r.get("street_address")),
             "department": (r.get("owner_department") or "").split(" - ")[-1],
+            "lat": point(r.get("latitude"), r.get("longitude"))[0] if point(r.get("latitude"), r.get("longitude")) else None,
+            "lon": point(r.get("latitude"), r.get("longitude"))[1] if point(r.get("latitude"), r.get("longitude")) else None,
         }
         for r in rows
         if not r.get("duplicate") and "information only" not in (r.get("sr_type") or "").lower()

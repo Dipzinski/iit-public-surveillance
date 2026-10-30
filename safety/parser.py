@@ -22,7 +22,7 @@ from datetime import datetime
 
 from common import CHICAGO_TZ, nice, title
 
-PARSER_VERSION = 4
+PARSER_VERSION = 5
 
 LABELS = {
     "incident type": "type",
@@ -44,6 +44,10 @@ DASH_RE = re.compile(r"\s+[–—-]\s+|\s*[–—]\s*|\s*-\s*(?=\d{1,5}\s*[NSEW]
 # Sign-offs that follow the last incident; never treat them as wrapped notes.
 CLOSING_RE = re.compile(r"^(thank you|thanks|regards|sincerely|respectfully|stay safe|be safe|"
                         r"department of public safety|illinois tech community|good morning|hello)\b", re.I)
+
+# Some posts run the type and the location together on one line:
+# "Incident Type: INJURED/SICK PERSON LOCATION: ILLINOIS INSTITUTE OF TECHNOLOGY : …"
+GLUED_LOCATION_RE = re.compile(r"\s*(?:\bLOCATION\s*:\s*)?ILLINOIS INSTITUTE", re.I)
 
 CAMPUSES = (
     ("MIES", ("MIES CAMPUS", "MAIN CAMPUS")),
@@ -110,8 +114,17 @@ def parse_post(content_html):
         key, sep, value = line.partition(":")
         field = LABELS.get(key.strip().lower()) if sep else None
         if field == "type":
-            current = {"raw_type": value.strip()}
+            value = value.strip()
+            glued = GLUED_LOCATION_RE.search(value)
+            current = {"raw_type": value[: glued.start()].strip() if glued else value}
             incidents.append(current)
+            if glued:
+                rest = value[glued.start():].strip()
+                rest = re.sub(r"(?i)^location\s*:\s*", "", rest)
+                m = DATETIME_RE.search(rest)
+                current["location"] = (rest[: m.start()] if m else rest).strip(" -–—:")
+                if m:
+                    current["reported"] = m.group(0)
             continue
         if current is None:
             continue

@@ -1,62 +1,79 @@
-// Live add-ons: traffic cameras, neighborhood map and the crime / traffic / alert panels,
-// on one shared clock so Pause stops them all at once.
+// Live around campus: featured camera widgets framing the notification stream, context cards
+// and the ticker, on one clock so Pause stops them all at once.
 
-import { $, h, getJSON } from '../util.js';
-import { createMap } from '../map.js';
-import * as cameras from '../cameras.js';
-import * as panels from '../panels.js';
+import { $, h, getJSON, milesBetween } from '../util.js';
+import { buildWidgets, initViewer, refreshWidgets, renderAges } from './widgets.js';
+import { initStream, refreshStream } from './stream.js';
+import { renderDispatch, renderNeighborhood } from './context.js';
+
+const CAMERA_MS = 30_000;     // camera frames
+const STREAM_MS = 2 * 60_000; // traffic, weather and 311
 
 let paused = false;
+let refreshing = false;
+let nextCameraAt = 0;
+let nextStreamAt = Date.now() + STREAM_MS;
+let feedStatus = { kind: 'ok', label: 'Connecting…' };
 
 function renderStatus() {
-  const cams = cameras.cameraState;
   const chip = $('#feed-status');
-  chip.className = `chip ${paused ? 'paused' : cams.feedStatus.kind}`;
-  chip.querySelector('.label').textContent = paused ? 'Paused' : cams.feedStatus.label;
+  chip.className = `chip ${paused ? 'paused' : feedStatus.kind}`;
+  chip.querySelector('.label').textContent = paused ? 'Paused' : feedStatus.label;
+  const s = Math.max(0, Math.ceil((nextCameraAt - Date.now()) / 1000));
+  $('#countdown').textContent = paused ? 'Paused' : refreshing ? 'Updating…' : `Next 0:${String(s).padStart(2, '0')}`;
+}
 
-  const countdown = $('#countdown');
-  if (paused) countdown.textContent = 'Paused';
-  else if (cams.refreshing) countdown.textContent = 'Updating…';
-  else {
-    const s = Math.max(0, Math.ceil((cams.nextRefreshAt - Date.now()) / 1000));
-    countdown.textContent = `Next 0:${String(s).padStart(2, '0')}`;
-  }
+async function refreshCameras() {
+  refreshing = true;
+  nextCameraAt = Date.now() + CAMERA_MS;
+  renderStatus();
+  await refreshWidgets();
+  refreshing = false;
+  renderStatus();
 }
 
 function tick() {
   renderStatus();
   if (paused || document.hidden) return;
-  cameras.tick();
-  panels.tick();
+  if (Date.now() >= nextCameraAt) refreshCameras();
+  if (Date.now() >= nextStreamAt) {
+    nextStreamAt = Date.now() + STREAM_MS;
+    refreshStream();
+  }
 }
 
 function setPaused(value) {
   paused = value;
-  const btn = $('#pause-btn');
-  btn.textContent = paused ? 'Resume' : 'Pause';
-  btn.setAttribute('aria-pressed', String(paused));
-  if (!paused) cameras.cameraState.nextRefreshAt = Date.now();
+  $('#pause-btn').textContent = paused ? 'Resume' : 'Pause';
+  $('#pause-btn').setAttribute('aria-pressed', String(paused));
+  $('#ticker').classList.toggle('paused', paused);
+  if (!paused) nextCameraAt = Date.now();
   renderStatus();
 }
 
-export async function startLive() {
+export async function startLive(ready) {
   const site = await getJSON('/api/site');
-  const mapView = createMap($('#map'), site);
-  panels.initPanels(site, mapView);
-  await cameras.initCameras(site, mapView);
+  let cameras = [];
+  try {
+    const data = await getJSON('/api/cameras');
+    cameras = data.cameras.filter((c) => milesBetween(c, site.center) <= site.cameraAreaMi);
+    feedStatus = data.stale ? { kind: 'warn', label: 'Cameras delayed' } : { kind: 'ok', label: 'Cameras live' };
+  } catch {
+    feedStatus = { kind: 'error', label: 'Cameras offline' };
+  }
 
-  $('#refresh-btn').addEventListener('click', () => {
-    cameras.refreshAll(renderStatus);
-    panels.refreshAll();
-  });
+  buildWidgets(site, cameras);
+  initViewer();
+  initStream(ready);
+  renderNeighborhood(ready);
+  renderDispatch(site);
+
+  $('#refresh-btn').addEventListener('click', () => { refreshCameras(); refreshStream(); });
   $('#pause-btn').addEventListener('click', () => setPaused(!paused));
-  $('#reset-btn').addEventListener('click', cameras.resetSelection);
-  // Catch up right away when the tab comes back into view.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
-
   tick();
   setInterval(tick, 1000);
-  setInterval(() => { cameras.renderAges(); panels.renderAges(); }, 10_000);
+  setInterval(renderAges, 10_000);
 }
 
 export function reportLiveError(err) {

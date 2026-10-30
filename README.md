@@ -34,10 +34,28 @@ alongside as add-ons.
 - **KPIs:** this week vs. a typical week (meter), the last 30 days and year to
   date vs. last year, the most common family lately, and days since the last
   incident of whatever you've filtered to.
+- **Jump to anything** with the `⌘K` / `Ctrl+K` command palette: a building, an
+  incident type, a family, an outcome, a year, a camera, or an action like Replay
+  or Export.
 - **Export** the current view as CSV.
-- **Live around campus (add-ons).** IDOT traffic cameras, Chicago Police reports
-  within ½ mile, live traffic incidents and crash patterns, and National Weather
-  Service alerts with 311 requests.
+
+### Live around campus (add-ons)
+
+![Live around campus: four monitor-style camera widgets framing a live feed of campus reports, traffic incidents and 311 requests, each with its nearest camera](docs/live.jpg)
+
+- **Camera widgets.** The four best IDOT angles on and around campus are styled as
+  monitor feeds (corner brackets, scanlines, a REC badge and capture time). They
+  frame a **live feed** that merges recent campus reports, live traffic
+  incidents, weather warnings and city 311 requests.
+- **Nearest camera.** Every feed item with a location shows the frame from the
+  traffic camera nearest to it. Campus reports open their case file.
+- **Ticker.** The latest items scroll along the bottom of the screen like a news
+  crawl. A severe weather warning also takes over the top banner.
+- **On campus vs. the blocks around it.** Public Safety reports compared with
+  Chicago Police reports within ½ mile over the same dates, plus crash patterns.
+- **Dispatch & contacts.** IIT Public Safety numbers, IIT Alert sign-up, and why
+  there is no public live dispatch feed (police radio has been encrypted since
+  2024).
 
 ## Run it
 
@@ -54,7 +72,7 @@ Safety log in the background (31 requests, about a minute) while the page shows
 progress. After that it checks for new posts every 15 minutes.
 
 ```bash
-python3 -m unittest discover -s tests -t .   # 26 tests
+python3 -m unittest discover -s tests -t .   # 27 tests
 python3 -m safety.sync --rebuild             # re-parse the stored posts after changing the parser
 PORT=9000 python3 server.py                  # another port
 ```
@@ -75,7 +93,8 @@ IIT Public Safety blog ──► safety/sync.py ──► SQLite archive ──�
 2014–2018 the location and time share one unlabeled line, inside markup pasted
 from other apps. The parser works on text lines rather than tags, so it reads
 every era. It also recognizes "no incidents" days (512 of them) and the safety
-tips from 2011–2013. Real posts from each era are test fixtures.
+tips from 2011–2013, and older posts that run the type and location together on
+one line. Real posts from each era are test fixtures.
 
 **Geocoding without a geocoding service.**
 `tools/calibrate_streets.py` fits where every street near campus runs from 53,000
@@ -114,7 +133,8 @@ tools/                 street-model calibration
 data/site.json         campus location, outline, default cameras, contacts
 data/geo/              streets.json (calibrated), aliases.json (building names)
 static/js/safety/      main stage: state, timeline, map, feed, drawer, analytics
-static/js/live/        add-on section boot
+static/js/live/        camera widgets, live feed + ticker, context cards
+static/js/palette.js   ⌘K command palette
 tests/                 parser, geocoder and API tests with real fixtures
 ```
 

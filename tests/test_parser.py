@@ -77,6 +77,15 @@ class PieceTests(unittest.TestCase):
         self.assertEqual(split_location("ILLINOIS INSTITUTE OF TECHNOLOGY : KENT CAMPUS : LOBBY")[0], "KENT")
         self.assertEqual(split_location("ILLINOIS INSTITUTE OF TECHNOLOGY : OFF CAMPUS LOCATION")[0], "OFF")
 
+    def test_type_and_location_on_one_line(self):
+        html = ("<p>Incident Type: INJURED/SICK PERSON : NON-EMERGENCY MEDICAL TRANSPORT LOCATION: ILLINOIS INSTITUTE "
+                "OF TECHNOLOGY : MIES CAMPUS : RESIDENTIAL BUILDINGS : KACEK HALL – 3101 S WABASH</p>"
+                "<p>Date/Time Reported: 3/2/2019 10:15 PM</p><p>Notes: Transported.</p>")
+        kind, [incident] = parse_post(html)
+        self.assertEqual(incident["type"], "Injured/Sick Person – Non-Emergency Medical Transport")
+        self.assertEqual(incident["campus"], "MIES")
+        self.assertEqual(incident["pieces"], ["KACEK HALL", "3101 S WABASH"])
+
     def test_parse_datetime_variants(self):
         self.assertEqual(parse_datetime("10/23/2026 03:48 PM").isoformat(), "2026-10-23T15:48:00-05:00")
         self.assertEqual(parse_datetime("6/23/2015 12:05 AM").hour, 0)

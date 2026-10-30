@@ -1,31 +1,73 @@
 {
   "name": "IIT Mies Campus",
   "neighborhood": "Bronzeville, Chicago",
-  "center": { "lat": 41.8346, "lon": -87.6272 },
+  "center": {
+    "lat": 41.8346,
+    "lon": -87.6272
+  },
   "watchRadiusMi": 0.5,
   "cameraAreaMi": 2,
   "trafficAreaMi": 2,
-  "slots": 6,
   "campusOutline": [
-    [41.8382, -87.6305],
-    [41.8382, -87.6242],
-    [41.8309, -87.6242],
-    [41.8309, -87.6305]
+    [
+      41.8382,
+      -87.6305
+    ],
+    [
+      41.8382,
+      -87.6242
+    ],
+    [
+      41.8309,
+      -87.6242
+    ],
+    [
+      41.8309,
+      -87.6305
+    ]
   ],
   "landmarks": [
-    { "name": "Rate Field", "lat": 41.8299, "lon": -87.6338, "label": "left" }
-  ],
-  "defaultCameras": [
-    "IL-IDOTD1_1_Cook_NB_I-90_4183094_-8763017_1_NONE",
-    "IL-IDOTD1_1_Cook_WB_I-90_4184701_-8764056_1_NONE",
-    "IL-IDOTD1_1_Cook_WB_I-55_4184816_-8761854_1_NONE",
-    "IL-IDOTD1_1_Cook_NB_US-41_4184799_-8761203_1_NONE",
-    "IL-IDOTD1_1_Cook_NB_I-90_4181154_-8762959_1_NONE",
-    "IL-IDOTD1_1_Cook_SWB_I-55_4184787_-8764391_1_NONE"
+    {
+      "name": "Rate Field",
+      "lat": 41.8299,
+      "lon": -87.6338,
+      "label": "left"
+    }
   ],
   "contacts": [
-    { "label": "IIT Public Safety — emergency", "phone": "312.808.6363" },
-    { "label": "IIT Public Safety — non-emergency", "phone": "312.808.6300" },
-    { "label": "Safety escort", "phone": "312.808.6310" }
+    {
+      "label": "IIT Public Safety \u2014 emergency",
+      "phone": "312.808.6363"
+    },
+    {
+      "label": "IIT Public Safety \u2014 non-emergency",
+      "phone": "312.808.6300"
+    },
+    {
+      "label": "Safety escort",
+      "phone": "312.808.6310"
+    }
+  ],
+  "featuredCameras": [
+    {
+      "id": "IL-IDOTD1_1_Cook_NB_I-90_4183094_-8763017_1_NONE",
+      "angle": "Campus west edge",
+      "view": "Dan Ryan at 35th St, looking north along campus"
+    },
+    {
+      "id": "IL-IDOTD1_1_Cook_NB_I-90_4181154_-8762959_1_NONE",
+      "angle": "South approach",
+      "view": "Dan Ryan at 45th St, looking north toward campus"
+    },
+    {
+      "id": "IL-IDOTD1_1_Cook_WB_I-90_4184701_-8764056_1_NONE",
+      "angle": "Northwest approach",
+      "view": "Stevenson / Dan Ryan interchange"
+    },
+    {
+      "id": "IL-IDOTD1_1_Cook_WB_I-55_4184816_-8761854_1_NONE",
+      "angle": "Lakefront approach",
+      "view": "Stevenson at Lake Shore Drive"
+    }
   ]
 }
