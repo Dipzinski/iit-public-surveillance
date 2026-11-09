@@ -7,8 +7,8 @@ import { capturedTime, formatAge, loadFrame, roadLine, status } from './frames.j
 const STAGGER_MS = 200;
 const widgets = [];
 let site;
-let cameras = new Map(); // id -> camera, every camera in the area
-let order = [];          // area cameras, north to south (viewer prev/next)
+let cameras = new Map(); // id -> camera, every camera in the city
+let order = [];          // north to south (viewer prev/next)
 const viewerState = { id: null, list: [], url: null, capturedAt: null, error: false, loading: null };
 
 const clock = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Chicago' });
@@ -76,7 +76,8 @@ export function renderAges() {
 }
 
 export const featuredCameras = () => widgets.map((w) => w.cam);
-export const areaCameras = () => [...cameras.values()];
+export const allCameras = () => [...cameras.values()];
+export const areaCameras = () => allCameras().filter((c) => milesBetween(c, site.center) <= site.cameraAreaMi);
 
 // ---------- viewer ----------
 

@@ -63,7 +63,7 @@ export async function renderDispatch(site) {
       ' for official campus emergency texts.'),
     requests && !requests.error && h('p', { class: 'note' },
       `${requests.total} city 311 requests within ${requests.radiusMi} mi this week, ${requests.open} still open (in the live feed).`),
-    h('p', { class: 'note' }, 'There is no public live dispatch feed: Chicago police radio has been encrypted since 2024 and ',
-      'the city’s 911 dispatch data is internal. Fire and EMS scanner audio: ',
+    h('p', { class: 'note' }, 'Chicago police radio is encrypted, and the city’s 911 dispatch data is internal. The city releases police audio ',
+      'after a delay on Broadcastify, whose terms don’t allow embedding or transcribing it here. Listen: ',
       h('a', { href: SCANNER_URL, target: '_blank', rel: 'noopener' }, 'Broadcastify · Cook County ↗')));
 }

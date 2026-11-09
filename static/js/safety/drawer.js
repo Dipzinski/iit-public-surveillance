@@ -5,7 +5,7 @@ import { $, h } from '../util.js';
 import { dataset, filters, only, select, selection, subscribe } from './state.js';
 import { formatWeekday, formatClock, formatDay, today } from './data.js';
 import { familyColor } from './colors.js';
-import { createBaseMap } from './campus-map.js';
+import { miniMapElement } from './city-map.js';
 import { highlight, step } from './feed.js';
 
 const PLACEMENT = {
@@ -19,7 +19,6 @@ const PLACEMENT = {
   none: 'Not given',
 };
 
-let miniMap;
 let lastShown = null;
 
 function field(label, value, cls = '') {
@@ -90,7 +89,7 @@ function render() {
     h('section', { class: 'case-section' },
       h('h3', {}, 'Officer notes'),
       h('p', { class: 'case-notes' }, ...highlight(inc.notes[i] || 'No notes in the log.', q))),
-    h('div', { id: 'case-map', class: 'case-map', hidden: !place.mappable }),
+    place.mappable && window.maplibregl ? miniMapElement(place.lat, place.lon, familyColor(fam)) : null,
     history(data, data.group[i], i),
     h('div', { class: 'case-actions' },
       h('button', { type: 'button', class: 'btn', onclick: () => only('places', data.group[i]) }, 'Only this place'),
@@ -98,14 +97,6 @@ function render() {
       h('a', { class: 'btn', href: post.link, target: '_blank', rel: 'noopener' }, 'Original log ↗')),
     h('p', { class: 'case-source muted' }, `Source: ${post.title}`),
   );
-
-  if (place.mappable && window.L) {
-    const el = $('#case-map');
-    if (miniMap) miniMap.remove();
-    miniMap = createBaseMap(el, { zoom: false });
-    miniMap.setView([place.lat, place.lon], 17);
-    L.circleMarker([place.lat, place.lon], { radius: 9, weight: 3, color: '#f5f7fa', fillColor: familyColor(fam), fillOpacity: 1 }).addTo(miniMap);
-  }
 }
 
 export function initDrawer() {

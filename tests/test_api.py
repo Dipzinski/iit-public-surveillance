@@ -68,5 +68,25 @@ class ApiTests(unittest.TestCase):
         self.assertIn("phase", status["sync"])
 
 
+class CityFeedTests(unittest.TestCase):
+    def row(self, **changes):
+        return {"id": "1", "date": "2026-10-20T21:15:00.000", "primary_type": "ROBBERY", "description": "ARMED - HANDGUN",
+                "block": "031XX S STATE ST", "location_description": "STREET", "arrest": True, "domestic": False,
+                "community_area": "35", "latitude": "41.83", "longitude": "-87.62", **changes}
+
+    def test_police_report_reads_like_a_feed_item(self):
+        item = server.feeds.police_report(self.row())
+        self.assertEqual((item["type"], item["detail"]), ("Robbery", "Armed - handgun"))
+        self.assertEqual((item["block"], item["area"]), ("3100 block of S State St", "Douglas"))
+        self.assertEqual(item["family"], "person")
+
+    def test_sensitive_reports_are_not_listed_individually(self):
+        self.assertIsNone(server.feeds.police_report(self.row(primary_type="CRIMINAL SEXUAL ASSAULT")))
+        self.assertIsNone(server.feeds.police_report(self.row(domestic=True)))
+
+    def test_reports_without_coordinates_are_skipped(self):
+        self.assertIsNone(server.feeds.police_report(self.row(latitude=None)))
+
+
 if __name__ == "__main__":
     unittest.main()

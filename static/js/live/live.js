@@ -1,8 +1,10 @@
 // Live around campus: featured camera widgets framing the notification stream, context cards
 // and the ticker, on one clock so Pause stops them all at once.
 
-import { $, h, getJSON, milesBetween } from '../util.js';
-import { buildWidgets, initViewer, refreshWidgets, renderAges } from './widgets.js';
+import { $, h, getJSON } from '../util.js';
+import { setCameraLayer } from '../safety/city-map.js';
+import { buildWidgets, initViewer, openViewer, refreshWidgets, renderAges } from './widgets.js';
+import { initActivity, refreshActivity } from './activity.js';
 import { initStream, refreshStream } from './stream.js';
 import { renderDispatch, renderNeighborhood } from './context.js';
 
@@ -39,6 +41,7 @@ function tick() {
   if (Date.now() >= nextStreamAt) {
     nextStreamAt = Date.now() + STREAM_MS;
     refreshStream();
+    refreshActivity();
   }
 }
 
@@ -56,7 +59,7 @@ export async function startLive(ready) {
   let cameras = [];
   try {
     const data = await getJSON('/api/cameras');
-    cameras = data.cameras.filter((c) => milesBetween(c, site.center) <= site.cameraAreaMi);
+    cameras = data.cameras;
     feedStatus = data.stale ? { kind: 'warn', label: 'Cameras delayed' } : { kind: 'ok', label: 'Cameras live' };
   } catch {
     feedStatus = { kind: 'error', label: 'Cameras offline' };
@@ -64,11 +67,13 @@ export async function startLive(ready) {
 
   buildWidgets(site, cameras);
   initViewer();
+  setCameraLayer(cameras, openViewer);
   initStream(ready);
+  ready.then(initActivity);
   renderNeighborhood(ready);
   renderDispatch(site);
 
-  $('#refresh-btn').addEventListener('click', () => { refreshCameras(); refreshStream(); });
+  $('#refresh-btn').addEventListener('click', () => { refreshCameras(); refreshStream(); refreshActivity(); });
   $('#pause-btn').addEventListener('click', () => setPaused(!paused));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
   tick();

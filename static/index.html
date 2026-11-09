@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="safety.css">
 </head>
@@ -47,6 +47,51 @@
     <p class="hint">First run only: the server downloads every Public Safety log post once, then keeps it up to date.</p>
   </div>
 
+  <section class="hero" id="hero" aria-label="Map of Chicago">
+    <div class="city-map" id="city-map"></div>
+
+    <div class="map-tools">
+      <div class="segs" id="map-styles" role="group" aria-label="Map style"></div>
+      <div class="segs" role="group" aria-label="Map view">
+        <button class="seg" id="view-chicago" type="button">All Chicago</button>
+        <button class="seg" id="view-campus" type="button">Mies Campus</button>
+      </div>
+      <button class="btn ghost" id="replay-btn" type="button" aria-pressed="false" title="Play the chosen dates on the map">▶ Replay</button>
+      <div class="map-layers" id="map-layers" role="group" aria-label="Map layers"></div>
+    </div>
+    <span class="replay-label mono" id="replay-label" hidden></span>
+
+    <aside class="card activity" aria-labelledby="activity-title">
+      <header class="activity-head">
+        <h2 id="activity-title"><span class="live-dot" aria-hidden="true"></span>Chicago activity</h2>
+        <div class="stream-filters" id="activity-tabs" role="group" aria-label="Show"></div>
+      </header>
+      <a class="radio-link" href="https://www.broadcastify.com/listen/ctid/606" target="_blank" rel="noopener">
+        <span><b>Police radio audio</b><small>Released by the city after a delay</small></span>
+        <span class="radio-go">Listen ↗</span>
+      </a>
+      <p class="hint activity-note" id="activity-note"></p>
+      <div class="activity-list" id="activity-list"></div>
+    </aside>
+
+    <section class="dock" aria-labelledby="slider-title">
+      <header class="dock-head">
+        <div class="head-text">
+          <h2 id="slider-title">IIT Public Safety reports</h2>
+          <span class="hint mono" id="slider-count"></span>
+          <span class="hint dock-note" id="map-note"></span>
+        </div>
+        <div class="dock-controls">
+          <div class="segs" id="slider-ranges" role="group" aria-label="Date range"></div>
+          <button class="icon-btn" id="slider-prev" type="button" aria-label="Earlier in the list">‹</button>
+          <button class="icon-btn" id="slider-next" type="button" aria-label="Later in the list">›</button>
+          <button class="btn ghost" id="to-dashboard" type="button">Dashboard ↓</button>
+        </div>
+      </header>
+      <div class="slider-track" id="slider-track" tabindex="0" aria-label="Reports, newest first"></div>
+    </section>
+  </section>
+
   <main id="safety" class="safety">
     <div class="filterbar">
       <span class="filter-label">Filters</span>
@@ -75,21 +120,6 @@
     </section>
 
     <div class="stage">
-      <section class="card map-panel" aria-labelledby="campus-map-title">
-        <header class="card-head">
-          <div class="head-text">
-            <h2 id="campus-map-title">Campus map</h2>
-            <span class="hint">circle size = reports · click a place to filter</span>
-          </div>
-          <button class="btn ghost" id="replay-btn" type="button" aria-pressed="false" title="Play the chosen dates on the map">▶ Replay</button>
-        </header>
-        <div class="map-wrap">
-          <div class="campus-map" id="campus-map"></div>
-          <span class="replay-label mono" id="replay-label" hidden></span>
-        </div>
-        <p class="map-note hint" id="map-note"></p>
-      </section>
-
       <section class="card feed-panel" aria-labelledby="feed-title">
         <header class="card-head">
           <div class="head-text">
@@ -251,7 +281,7 @@
   </dialog>
 
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>

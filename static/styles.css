@@ -116,7 +116,7 @@ h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
   min-width: 0;
 }
 
-/* ---------- Card headers and Leaflet ---------- */
+/* ---------- Card headers ---------- */
 
 .card-head {
   display: flex;
@@ -130,89 +130,9 @@ h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
 .card-head .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
 .map-error { display: grid; place-items: center; height: 100%; min-height: 280px; color: var(--muted); padding: 20px; text-align: center; }
 
-.leaflet-container { font: inherit; background: #0e1218; }
-.leaflet-control-attribution { background: rgba(11, 14, 19, 0.75) !important; color: var(--muted) !important; font-size: 10px; }
-.leaflet-control-attribution a { color: var(--muted) !important; }
-.leaflet-tooltip { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); box-shadow: none; }
-.leaflet-tooltip::before { display: none; }
-.leaflet-control-layers {
-  background: rgba(19, 24, 33, 0.92) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
-  font-size: 12px;
-}
-.leaflet-control-layers-expanded { padding: 6px 10px 6px 6px; }
-.leaflet-control-layers label { display: flex; align-items: center; margin: 2px 0; cursor: pointer; }
-.leaflet-control-layers label > span { display: inline-flex; align-items: center; }
-.leaflet-control-layers-toggle { filter: invert(1) brightness(0.9); }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-2); color: var(--text); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); }
-.leaflet-popup-content { margin: 10px 14px; font-size: 12.5px; line-height: 1.45; }
-.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
-.popup strong { display: block; font-size: 13px; margin-bottom: 2px; }
-.popup div { color: var(--muted); }
-
 .swatch { display: inline-block; width: 10px; height: 10px; margin: 0 6px 0 4px; border-radius: 50%; flex: none; }
-.swatch.tri { border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 
-/* Site markers: a diamond on the exact point with the label off to one side.
-   The Leaflet icon itself has no size, so children are positioned from the point. */
-.site-icon { width: 0; height: 0; }
-.site-marker { position: absolute; }
-.site-marker i {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: #f5f7fa;
-  box-shadow: 0 0 0 2px rgba(11, 14, 19, 0.9);
-}
-.site-marker b {
-  position: absolute;
-  top: 0;
-  transform: translateY(-50%);
-  padding: 2px 7px;
-  border-radius: 5px;
-  background: #f5f7fa;
-  color: #0b0e13;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  box-shadow: 0 0 0 2px rgba(11, 14, 19, 0.85);
-}
-.site-marker.right b { left: 11px; }
-.site-marker.left b { right: 11px; }
 
-/* Live traffic incident: status color plus a "!" so color never works alone. */
-.incident {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  padding-top: 5px;
-  color: #11161d;
-  font: 800 11px var(--mono);
-}
-.incident.critical { background: var(--status-critical); color: #fff; }
-.incident.warning { background: var(--status-warning); }
-
-.pin {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #04121c;
-  font: 700 11px var(--mono);
-  border: 2px solid #04121c;
-  box-shadow: 0 0 0 1px var(--accent);
-  transition: transform 0.15s;
-}
-.pin.hot { transform: scale(1.35); background: #fff; box-shadow: 0 0 0 2px var(--accent); }
 
 /* ---------- Status pills ---------- */
 @keyframes shimmer { to { background-position: -150% 0; } }

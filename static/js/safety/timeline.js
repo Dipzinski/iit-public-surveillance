@@ -188,16 +188,23 @@ function brushed(event) {
 
 // ---------- header: quick ranges + family legend ----------
 
-function renderHeader() {
+// The 30D / 90D / 1Y / 3Y / All buttons, shared with the report slider.
+export function renderQuickRanges(el) {
   const data = dataset();
   const t = today();
   const quick = [['30D', 29], ['90D', 89], ['1Y', 364], ['3Y', 365 * 3 - 1], ['All', null]];
   const [from, to] = filters.range;
-  $('#timeline-quick').replaceChildren(...quick.map(([label, back]) => {
+  el.replaceChildren(...quick.map(([label, back]) => {
     const range = back == null ? [data.firstDay, data.lastDay] : [t - back, t];
     const on = from === range[0] && to === range[1];
     return h('button', { type: 'button', class: `seg${on ? ' on' : ''}`, 'aria-pressed': String(on), onclick: () => setRange(range) }, label);
   }));
+}
+
+function renderHeader() {
+  const data = dataset();
+  const [from, to] = filters.range;
+  renderQuickRanges($('#timeline-quick'));
   $('#timeline-range').textContent = `${formatDay(from)} – ${formatDay(to)}`;
 
   // Legend doubles as the family filter.

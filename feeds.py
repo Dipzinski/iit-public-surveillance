@@ -8,6 +8,7 @@ doesn't hammer the upstream APIs.
     crime()       Chicago Police Department crime reports (City of Chicago Data Portal)
     traffic()     live IDOT roadway incidents + City of Chicago traffic crash reports
     alerts()      National Weather Service alerts + City of Chicago 311 service requests
+    chicago_*()   citywide police reports, injury crashes and live traffic for the main map
 """
 
 import math
@@ -19,8 +20,9 @@ from datetime import datetime, timedelta, timezone
 
 from common import (
     CENTER, CHICAGO_TZ, FETCH_ERRORS, METERS_PER_MILE, SITE,
-    chicago_now, fetch, fetch_json, miles_from_center, nice, title,
+    chicago_now, fetch_json, miles_from_center, nice, title,
 )
+from safety.taxonomy import family_of
 
 CHICAGO_DATA = "https://data.cityofchicago.org/resource"
 CRIMES = f"{CHICAGO_DATA}/ijzp-q8t2.json"
@@ -80,6 +82,9 @@ def point(lat, lon):
         return None
 
 
+FAILED_RETRY_SECONDS = 60
+
+
 class Cache:
     """Per-key TTL cache. On a failed refresh it keeps serving the last good copy."""
 
@@ -93,7 +98,9 @@ class Cache:
             lock = self._locks.setdefault(key, threading.Lock())
         with lock:
             entry = self._entries.get(key)
-            if entry and time.time() - entry["at"] < ttl:
+            # A source that has never answered gets retried soon; good data lasts its full TTL.
+            wait = ttl if entry and entry["data"] is not None else FAILED_RETRY_SECONDS
+            if entry and time.time() - entry["at"] < wait:
                 return entry
             try:
                 entry = {"at": time.time(), "data": loader(), "error": None}
@@ -198,9 +205,20 @@ def _load_live_traffic():
     area = SITE["trafficAreaMi"]
     dlat = area / 69.05
     dlon = area / (69.05 * math.cos(math.radians(CENTER["lat"])))
+    box = (CENTER["lon"] - dlon, CENTER["lat"] - dlat, CENTER["lon"] + dlon, CENTER["lat"] + dlat)
+    return {
+        "source": "Illinois DOT roadway incidents",
+        "sourceUrl": "https://www.gettingaroundillinois.com/",
+        "areaMi": area,
+        "incidents": _idot_incidents(box, area),
+    }
+
+
+def _idot_incidents(box, area=None):
+    """Active IDOT incidents inside a (west, south, east, north) box, optionally within `area` miles of campus."""
     payload = fetch_json(IDOT_INCIDENTS, {
         "where": "1=1",
-        "geometry": f"{CENTER['lon'] - dlon},{CENTER['lat'] - dlat},{CENTER['lon'] + dlon},{CENTER['lat'] + dlat}",
+        "geometry": ",".join(str(v) for v in box),
         "geometryType": "esriGeometryEnvelope",
         "inSR": "4326",
         "outSR": "4326",
@@ -208,7 +226,7 @@ def _load_live_traffic():
         "outFields": "TRAFFIC_ITEM_TYPE_DESC,START_TIME,END_TIME,CRITICALITY_DESC,ROAD_CLOSED,"
                      "LOCATION_DEFINED_ORIGIN_RDWY,TRAFFIC_ITEM_DESCRIPTION",
         "returnGeometry": "true",
-        "resultRecordCount": "500",
+        "resultRecordCount": "2000",
         "f": "json",
     })
     if "error" in payload:
@@ -222,7 +240,7 @@ def _load_live_traffic():
         if geom.get("y") is None or (start and start > now) or (end and end < now):
             continue
         distance = miles_from_center(geom["y"], geom["x"])
-        if distance > area:
+        if area is not None and distance > area:
             continue
         incidents.append({
             "kind": INCIDENT_KINDS.get(a.get("TRAFFIC_ITEM_TYPE_DESC"), nice(a.get("TRAFFIC_ITEM_TYPE_DESC")) or "Incident"),
@@ -239,12 +257,7 @@ def _load_live_traffic():
             "distanceMi": round(distance, 2),
         })
     incidents.sort(key=lambda i: (i["longTerm"], not i["critical"], i["distanceMi"]))
-    return {
-        "source": "Illinois DOT roadway incidents",
-        "sourceUrl": "https://www.gettingaroundillinois.com/",
-        "areaMi": area,
-        "incidents": incidents,
-    }
+    return incidents
 
 
 def _load_crashes():
@@ -361,6 +374,134 @@ def alerts():
         "weather": cached("weather", 2 * 60, _load_weather),
         "requests": cached("311", 5 * 60, _load_service_requests),
     }
+
+
+# --- Chicago-wide activity for the main map and feed ---------------------------
+
+CHICAGO_BOX = (-87.95, 41.63, -87.50, 42.03)
+COMMUNITY_AREAS = (
+    "", "Rogers Park", "West Ridge", "Uptown", "Lincoln Square", "North Center", "Lake View", "Lincoln Park",
+    "Near North Side", "Edison Park", "Norwood Park", "Jefferson Park", "Forest Glen", "North Park", "Albany Park",
+    "Portage Park", "Irving Park", "Dunning", "Montclare", "Belmont Cragin", "Hermosa", "Avondale", "Logan Square",
+    "Humboldt Park", "West Town", "Austin", "West Garfield Park", "East Garfield Park", "Near West Side",
+    "North Lawndale", "South Lawndale", "Lower West Side", "Loop", "Near South Side", "Armour Square", "Douglas",
+    "Oakland", "Fuller Park", "Grand Boulevard", "Kenwood", "Washington Park", "Hyde Park", "Woodlawn", "South Shore",
+    "Chatham", "Avalon Park", "South Chicago", "Burnside", "Calumet Heights", "Roseland", "Pullman", "South Deering",
+    "East Side", "West Pullman", "Riverdale", "Hegewisch", "Garfield Ridge", "Archer Heights", "Brighton Park",
+    "McKinley Park", "Bridgeport", "New City", "West Elsdon", "Gage Park", "Clearing", "West Lawn", "Chicago Lawn",
+    "West Englewood", "Englewood", "Greater Grand Crossing", "Ashburn", "Auburn Gresham", "Beverly",
+    "Washington Heights", "Mount Greenwood", "Morgan Park", "O'Hare", "Edgewater",
+)
+# Published by the city at block level, but not something to push out one by one in a live-style feed.
+WITHHELD_POLICE_TYPES = {
+    "CRIMINAL SEXUAL ASSAULT", "CRIM SEXUAL ASSAULT", "SEX OFFENSE", "OFFENSE INVOLVING CHILDREN",
+    "HUMAN TRAFFICKING", "STALKING",
+}
+
+
+def community_name(number):
+    try:
+        return COMMUNITY_AREAS[int(number)]
+    except (TypeError, ValueError, IndexError):
+        return ""
+
+
+def police_report(row):
+    """One city crime row as a feed item, or None if it shouldn't be listed individually."""
+    primary = (row.get("primary_type") or "").upper()
+    spot = point(row.get("latitude"), row.get("longitude"))
+    if not spot or row.get("domestic") or primary in WITHHELD_POLICE_TYPES:
+        return None
+    return {
+        "id": row.get("id"),
+        "when": socrata_time(row["date"]).isoformat(),
+        "type": title(primary),
+        "detail": (row.get("description") or "").capitalize(),
+        "block": block(row.get("block")),
+        "setting": (row.get("location_description") or "").capitalize(),
+        "area": community_name(row.get("community_area")),
+        "arrest": bool(row.get("arrest")),
+        "family": family_of(primary),
+        "lat": spot[0],
+        "lon": spot[1],
+    }
+
+
+def _load_city_police():
+    rows = fetch_json(CRIMES, {
+        "$select": "id,date,primary_type,description,block,location_description,arrest,domestic,community_area,latitude,longitude",
+        "$where": f"date > '{chicago_now() - timedelta(days=21):%Y-%m-%dT%H:%M:%S}' AND latitude IS NOT NULL",
+        "$order": "date DESC",
+        "$limit": "9000",
+    }, timeout=90)
+    latest = socrata_time(rows[0]["date"]) if rows else None
+    items = []
+    for row in rows:
+        if socrata_time(row["date"]) <= latest - timedelta(days=7):
+            break
+        item = police_report(row)
+        if item:
+            items.append(item)
+    return {
+        "source": "Chicago Police Department via City of Chicago Data Portal",
+        "sourceUrl": "https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2",
+        "windowDays": 7,
+        "latest": latest.isoformat() if latest else None,
+        "items": items,
+    }
+
+
+def _load_city_crashes():
+    rows = fetch_json(CRASHES, {
+        "$select": "crash_record_id,crash_date,street_no,street_direction,street_name,first_crash_type,injuries_total,"
+                   "injuries_fatal,hit_and_run_i,latitude,longitude",
+        "$where": f"crash_date > '{chicago_now() - timedelta(days=4):%Y-%m-%dT%H:%M:%S}' AND injuries_total > 0 AND latitude IS NOT NULL",
+        "$order": "crash_date DESC",
+        "$limit": "1500",
+    }, timeout=60)
+    items = []
+    for row in rows:
+        spot = point(row.get("latitude"), row.get("longitude"))
+        if not spot:
+            continue
+        street = " ".join(filter(None, [row.get("street_no"), row.get("street_direction"), title(row.get("street_name"))]))
+        items.append({
+            "id": row.get("crash_record_id"),
+            "when": socrata_time(row["crash_date"]).isoformat(),
+            "type": (row.get("first_crash_type") or "Crash").capitalize(),
+            "address": street,
+            "injuries": int(float(row.get("injuries_total") or 0)),
+            "fatal": int(float(row.get("injuries_fatal") or 0)),
+            "hitAndRun": row.get("hit_and_run_i") == "Y",
+            "lat": spot[0],
+            "lon": spot[1],
+        })
+    return {
+        "source": "Chicago Police crash reports via City of Chicago Data Portal",
+        "sourceUrl": "https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if",
+        "windowDays": 4,
+        "items": items,
+    }
+
+
+def _load_city_traffic():
+    return {
+        "source": "Illinois DOT roadway incidents",
+        "sourceUrl": "https://www.gettingaroundillinois.com/",
+        "items": [i for i in _idot_incidents(CHICAGO_BOX) if not i["longTerm"]],
+    }
+
+
+def chicago_police():
+    return cached("city-police", 30 * 60, _load_city_police)
+
+
+def chicago_crashes():
+    return cached("city-crashes", 15 * 60, _load_city_crashes)
+
+
+def chicago_traffic():
+    return cached("city-traffic", 2 * 60, _load_city_traffic)
 
 
 def site():

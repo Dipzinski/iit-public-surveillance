@@ -7,7 +7,8 @@ import { init, filters, select, selection } from './state.js';
 import { initFilterBar, toast } from './filterbar.js';
 import { initKpis } from './kpis.js';
 import { initTimeline } from './timeline.js';
-import { initCampusMap } from './campus-map.js';
+import { initCityMap } from './city-map.js';
+import { initSlider } from './slider.js';
 import { initFeed, step } from './feed.js';
 import { initFacets } from './facets.js';
 import { initDrawer } from './drawer.js';
@@ -25,6 +26,7 @@ async function waitForArchive() {
   const panel = $('#building');
   panel.hidden = false;
   $('#safety').hidden = true;
+  $('#hero').hidden = true;
   for (;;) {
     try {
       const s = await getJSON('/api/safety/status');
@@ -39,6 +41,7 @@ async function waitForArchive() {
   }
   panel.hidden = true;
   $('#safety').hidden = false;
+  $('#hero').hidden = false;
 }
 
 async function refreshStatus() {
@@ -90,7 +93,8 @@ export async function startSafety() {
   initFilterBar();
   initKpis();
   initTimeline();
-  initCampusMap();
+  await initCityMap();
+  initSlider();
   initFeed();
   initFacets();
   initDrawer();

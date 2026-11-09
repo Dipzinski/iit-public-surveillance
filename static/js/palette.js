@@ -5,7 +5,7 @@ import { $, h } from './util.js';
 import { clearAll, dataset, only, select, setRange } from './safety/state.js';
 import { today } from './safety/data.js';
 import { familyColor } from './safety/colors.js';
-import { areaCameras, openViewer } from './live/widgets.js';
+import { allCameras, openViewer } from './live/widgets.js';
 
 const MAX_RESULTS = 40;
 let items = [];
@@ -13,13 +13,13 @@ let results = [];
 let active = 0;
 
 const jan1 = (year) => Math.floor(Date.UTC(year, 0, 1) / 86400000);
-const toSafety = () => document.getElementById('safety').scrollIntoView({ behavior: 'smooth', block: 'start' });
+const toMap = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
 function buildItems() {
   const data = dataset();
   const list = [
     { kind: 'Action', label: 'Clear all filters', run: clearAll },
-    { kind: 'Action', label: 'Replay the map', run: () => { toSafety(); $('#replay-btn').click(); } },
+    { kind: 'Action', label: 'Replay the map', run: () => $('#replay-btn').click() },
     { kind: 'Action', label: 'Export the current view as CSV', run: () => $('#export-csv').click() },
     { kind: 'Action', label: 'Copy a link to this view', run: () => $('#copy-link').click() },
     { kind: 'Action', label: 'Open the latest report', run: () => data && select(data.newest[0]) },
@@ -47,7 +47,7 @@ function buildItems() {
       list.push({ kind: 'Type', label: data.types[ty], hint: `${n} reports`, run: () => only('types', ty) }));
     data.dispositions.forEach((d, i) => list.push({ kind: 'Outcome', label: d, run: () => only('disps', i) }));
   }
-  for (const cam of areaCameras()) list.push({ kind: 'Camera', label: cam.name, hint: cam.roadName, run: () => openViewer(cam.id), camera: true });
+  for (const cam of allCameras()) list.push({ kind: 'Camera', label: cam.name, hint: cam.roadName, run: () => openViewer(cam.id), camera: true });
   return list;
 }
 
@@ -85,7 +85,7 @@ function render() {
 function run(item) {
   $('#palette').close();
   item.run();
-  if (!item.camera && !['Copy a link to this view', 'Go to live cameras', 'Export the current view as CSV'].includes(item.label)) toSafety();
+  if (!item.camera && !['Copy a link to this view', 'Go to live cameras', 'Export the current view as CSV'].includes(item.label)) toMap();
 }
 
 export function openPalette() {

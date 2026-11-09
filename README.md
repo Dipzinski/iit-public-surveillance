@@ -2,9 +2,9 @@
 
 An interactive intelligence dashboard built on **every Illinois Tech Department of
 Public Safety report for the Mies Campus since 2014**: about 5,000 incidents parsed
-from 3,000+ daily log posts, placed on a campus map, and explorable through linked
-charts. Traffic cameras, Chicago Police data, live traffic and weather alerts sit
-alongside as add-ons.
+from 3,000+ daily log posts, placed on a full-screen 3D map of Chicago, and explorable
+through linked charts. Citywide police reports, injury crashes, live traffic, cameras
+and weather alerts sit alongside them.
 
 ![IIT Public Surveillance: KPI tiles, a brushable 12-year timeline stacked by incident family, the campus map, the report feed and the breakdown panel](docs/screenshot.jpg)
 
@@ -19,9 +19,15 @@ alongside as add-ons.
 - **Brush the timeline.** The bottom strip shows the whole archive; drag across it
   to pick dates. The chart above shows those dates stacked by family, binned by
   day, week or month to fit. Click a column to zoom in.
-- **Campus map.** Each place is sized by its report count, and incidents from the
-  last 7 days pulse. **Replay** animates the chosen dates, with each report
-  appearing on its building in its family color.
+- **Full-screen map of Chicago.** The app opens on a vector map of the whole city:
+  every street, transit stop, point of interest and 3D building, in Detailed, Streets
+  or Satellite styles. Each IIT report location is sized by its report count, and
+  reports from the last 7 days pulse. **Replay** animates the chosen dates, with each
+  report appearing on its building in its family color.
+- **Report slider.** The newest reports sit in a draggable row along the bottom of the
+  map. Opening one flies the map to that building and opens its case file.
+- **Chicago activity.** A Citizen-style feed of citywide Chicago Police reports, crashes
+  with injuries and live traffic incidents, each one tappable on the map.
 - **Case files.** Open any report (or step through with `j`/`k`) to see the full
   record, how precisely it was placed, a mini-map, the location's history since
   2014, and a link to the original log post.
@@ -53,9 +59,9 @@ alongside as add-ons.
   crawl. A severe weather warning also takes over the top banner.
 - **On campus vs. the blocks around it.** Public Safety reports compared with
   Chicago Police reports within ½ mile over the same dates, plus crash patterns.
-- **Dispatch & contacts.** IIT Public Safety numbers, IIT Alert sign-up, and why
-  there is no public live dispatch feed (police radio has been encrypted since
-  2024).
+- **Dispatch & contacts.** IIT Public Safety numbers, IIT Alert sign-up, and a link
+  to the city's delayed police radio audio on Broadcastify. Its terms don't allow
+  embedding or transcribing that audio, so the app shows official reports instead.
 
 ## Run it
 
@@ -72,7 +78,7 @@ Safety log in the background (31 requests, about a minute) while the page shows
 progress. After that it checks for new posts every 15 minutes.
 
 ```bash
-python3 -m unittest discover -s tests -t .   # 27 tests
+python3 -m unittest discover -s tests -t .   # 30 tests
 python3 -m safety.sync --rebuild             # re-parse the stored posts after changing the parser
 PORT=9000 python3 server.py                  # another port
 ```
@@ -85,7 +91,7 @@ IIT Public Safety blog ──► safety/sync.py ──► SQLite archive ──�
                             every 15 min        for re-parsing     since 2014            building addresses
                                                                                               │
                      browser ◄── /api/safety/dataset (all reports, columnar, 189 KB gzipped) ◄─┘
-       crossfilter state · D3 charts · Leaflet maps · virtual-scrolling feed
+       crossfilter state · D3 charts · MapLibre 3D map · virtual-scrolling feed
 ```
 
 **Parsing a decade of formats.** Since 2019 the log uses labeled fields
@@ -118,7 +124,7 @@ lookup tables, gzipped and ETag-cached. The page then does all filtering itself:
 - The feed keeps only the rows on screen in the DOM.
 
 **Stack.** Python standard library (`http.server`, `sqlite3`, `urllib`) on the
-backend. On the frontend, buildless ES modules with D3 7 and Leaflet. Chart
+backend. On the frontend, buildless ES modules with D3 7 and MapLibre GL. Chart
 colors come from a palette checked for color-blind safety, with family colors in
 a fixed order.
 
@@ -147,7 +153,7 @@ tests/                 parser, geocoder and API tests with real fixtures
 | Cameras, live incidents | [Illinois DOT](https://www.gettingaroundillinois.com/) public ArcGIS layers |
 | Crime, crashes, 311 | [City of Chicago Data Portal](https://data.cityofchicago.org/) |
 | Weather alerts | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) |
-| Basemap | Esri World Dark Gray Canvas, © OpenStreetMap contributors |
+| Map | [OpenFreeMap](https://openfreemap.org/) vector tiles, © OpenMapTiles, © OpenStreetMap contributors; satellite imagery © Esri, Maxar, Earthstar Geographics |
 
 ---
 

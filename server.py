@@ -210,6 +210,9 @@ FEED_ROUTES = {
     "/api/crime": feeds.crime,
     "/api/traffic": feeds.traffic,
     "/api/alerts": feeds.alerts,
+    "/api/chicago/police": feeds.chicago_police,
+    "/api/chicago/crashes": feeds.chicago_crashes,
+    "/api/chicago/traffic": feeds.chicago_traffic,
 }
 
 
@@ -333,9 +336,19 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(image)
 
 
+class Server(ThreadingHTTPServer):
+    # The page opens dozens of connections at once; the default queue of 5 refuses some of them.
+    request_queue_size = 128
+
+    def handle_error(self, request, client_address):
+        # A visitor leaving mid-download is normal, not an error worth a traceback.
+        if not isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+            super().handle_error(request, client_address)
+
+
 def main():
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        server = Server(("127.0.0.1", PORT), Handler)
     except OSError as exc:
         if exc.errno != errno.EADDRINUSE:
             raise
