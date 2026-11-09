@@ -14,6 +14,7 @@ import threading
 from datetime import datetime
 
 from common import CHICAGO_TZ, SITE
+from safety.privacy import WITHHELD_NOTES, WITHHELD_PLACE, is_sensitive, scrub_notes
 from safety.taxonomy import FAMILIES
 
 # The Mies campus, plus off-campus reports and ones with no campus named
@@ -54,17 +55,24 @@ def build(store):
         cols["approx"].append(approx)
         cols["family"].append(FAMILY_INDEX[r["family"]])
         cols["type"].append(types(r["type"]))
-        cols["place"].append(places(
-            (r["place"], r["lat"], r["lon"], r["geo_quality"]),
-            {"name": r["place"], "lat": r["lat"], "lon": r["lon"], "quality": r["geo_quality"],
-             "address": r["address"] or "", "area": r["area"] or ""},
-        ))
+        sensitive = is_sensitive(r["type"], r["notes"])
+        if sensitive:
+            cols["place"].append(places(WITHHELD_PLACE, {
+                "name": WITHHELD_PLACE, "lat": None, "lon": None, "quality": "none",
+                "address": "", "area": "", "withheld": True,
+            }))
+        else:
+            cols["place"].append(places(
+                (r["place"], r["lat"], r["lon"], r["geo_quality"]),
+                {"name": r["place"], "lat": r["lat"], "lon": r["lon"], "quality": r["geo_quality"],
+                 "address": r["address"] or "", "area": r["area"] or ""},
+            ))
         cols["disp"].append(dispositions(r["disposition"]) if r["disposition"] else -1)
         cols["post"].append(posts(r["post_id"], {
             "id": r["post_id"], "date": r["post_date"], "link": r["post_link"], "title": html.unescape(r["post_title"]),
         }))
         cols["campus"].append(CAMPUSES.index(r["campus"]))
-        cols["notes"].append(r["notes"] or "")
+        cols["notes"].append(WITHHELD_NOTES if sensitive else scrub_notes(r["notes"]))
 
     return {
         "site": {"name": SITE["name"], "center": SITE["center"], "outline": SITE["campusOutline"]},

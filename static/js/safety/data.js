@@ -45,7 +45,7 @@ export const formatClock = (t) => timeFmt.format(new Date(t * 1000));
 export class BuildingArchive extends Error {}
 
 export async function loadDataset() {
-  const res = await fetch('/api/safety/dataset', { cache: 'no-cache' });
+  const res = await fetch('api/safety/dataset.json', { cache: 'no-cache' });
   if (res.status === 503) throw new BuildingArchive('archive is being built');
   const raw = await res.json();
   if (!res.ok) throw new Error(raw.error || `HTTP ${res.status}`);
@@ -79,7 +79,7 @@ function decode(raw) {
   const placeGroup = raw.places.map((p) => {
     if (!groupOf.has(p.name)) {
       groupOf.set(p.name, groups.length);
-      groups.push({ name: p.name, lat: null, lon: null, quality: 'none', address: '', area: p.area });
+      groups.push({ name: p.name, lat: null, lon: null, quality: 'none', address: '', area: p.area, withheld: !!p.withheld });
     }
     const g = groups[groupOf.get(p.name)];
     if (RANK.indexOf(p.quality) < RANK.indexOf(g.quality)) Object.assign(g, { lat: p.lat, lon: p.lon, quality: p.quality, address: p.address || g.address });

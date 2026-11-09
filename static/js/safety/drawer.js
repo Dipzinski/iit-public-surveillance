@@ -90,11 +90,11 @@ function render() {
       h('h3', {}, 'Officer notes'),
       h('p', { class: 'case-notes' }, ...highlight(inc.notes[i] || 'No notes in the log.', q))),
     place.mappable && window.maplibregl ? miniMapElement(place.lat, place.lon, familyColor(fam)) : null,
-    history(data, data.group[i], i),
+    place.withheld ? null : history(data, data.group[i], i),
     h('div', { class: 'case-actions' },
-      h('button', { type: 'button', class: 'btn', onclick: () => only('places', data.group[i]) }, 'Only this place'),
+      place.withheld ? null : h('button', { type: 'button', class: 'btn', onclick: () => only('places', data.group[i]) }, 'Only this place'),
       h('button', { type: 'button', class: 'btn', onclick: () => only('types', inc.type[i]) }, 'Only this type'),
-      h('a', { class: 'btn', href: post.link, target: '_blank', rel: 'noopener' }, 'Original log ↗')),
+      place.withheld ? null : h('a', { class: 'btn', href: post.link, target: '_blank', rel: 'noopener' }, 'Original log ↗')),
     h('p', { class: 'case-source muted' }, `Source: ${post.title}`),
   );
 }
