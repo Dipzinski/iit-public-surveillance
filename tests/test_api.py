@@ -53,6 +53,12 @@ class ApiTests(unittest.TestCase):
         place = data["places"][cols["place"][0]]
         self.assertIn("quality", place)
 
+    def test_file_style_names_match_the_published_site(self):
+        with self.get("/api/safety/status.json") as resp:
+            self.assertIn("incidents", json.load(resp))
+        with self.get("/api/safety/dataset.json") as resp:
+            self.assertEqual(resp.status, 200)
+
     def test_dataset_etag_gives_304(self):
         with self.get("/api/safety/dataset") as resp:
             etag = resp.headers["ETag"]

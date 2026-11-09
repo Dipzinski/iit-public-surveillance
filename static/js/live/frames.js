@@ -1,10 +1,15 @@
 // Camera frames: fetch through the server's relay, decode off-screen, track capture time,
 // and find the camera nearest to any point.
 
-import { milesBetween } from '../util.js';
+import { getJSON, milesBetween } from '../util.js';
 
 const LIVE_MAX_MIN = 10;
 const DELAYED_MAX_MIN = 30;
+const SNAPSHOT_MAX_MIN = 180;
+
+// On the published site frames are files saved by the scheduled build, not relayed live.
+let published = false;
+export const usePublishedFrames = () => { published = true; };
 
 export function roadLine(cam) {
   return [cam.roadName, cam.road !== cam.roadName ? cam.road : '', cam.direction].filter(Boolean).join(' · ');
@@ -26,15 +31,28 @@ export function capturedTime(capturedAt, cam) {
 export function status(captured, error) {
   if (error) return { cls: 'offline', label: 'Offline' };
   const minutes = (Date.now() - captured) / 60_000;
+  if (published) return minutes <= SNAPSHOT_MAX_MIN ? { cls: 'delayed', label: 'Snapshot' } : { cls: 'offline', label: 'Stale' };
   if (minutes <= LIVE_MAX_MIN) return { cls: 'live', label: 'Live' };
   if (minutes <= DELAYED_MAX_MIN) return { cls: 'delayed', label: 'Delayed' };
   return { cls: 'offline', label: 'Stale' };
 }
 
+// A static host can't send a capture time with each image, so the build lists them in one file.
+let captures = null;
+let capturesAt = 0;
+function publishedCapture(id) {
+  if (Date.now() - capturesAt > 60_000) {
+    capturesAt = Date.now();
+    captures = getJSON('api/captures.json').catch(() => ({}));
+  }
+  return captures.then((all) => all[id] || '');
+}
+
 async function fetchSnapshot(id) {
-  const res = await fetch(`/api/snapshot/${encodeURIComponent(id)}`, { cache: 'no-store' });
+  const res = await fetch(`api/snapshot/${encodeURIComponent(id)}.jpg`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`snapshot ${res.status}`);
-  return { capturedAt: res.headers.get('X-Captured-At') || '', blob: await res.blob() };
+  const capturedAt = published ? await publishedCapture(id) : res.headers.get('X-Captured-At') || '';
+  return { capturedAt, blob: await res.blob() };
 }
 
 // Decode off-screen so the visible image swaps without a flash. Background tabs can hold
@@ -75,7 +93,7 @@ export async function loadFrame(holder, id, img) {
 }
 
 // A snapshot URL that the browser can share between cards for a minute.
-export const snapshotUrl = (id) => `/api/snapshot/${encodeURIComponent(id)}?m=${Math.floor(Date.now() / 60_000)}`;
+export const snapshotUrl = (id) => `api/snapshot/${encodeURIComponent(id)}.jpg?m=${Math.floor(Date.now() / 60_000)}`;
 
 export function nearestCamera(lat, lon, cameras) {
   let best = null;

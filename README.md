@@ -6,7 +6,9 @@ from 3,000+ daily log posts, placed on a full-screen 3D map of Chicago, and expl
 through linked charts. Citywide police reports, injury crashes, live traffic, cameras
 and weather alerts sit alongside them.
 
-![IIT Public Surveillance: KPI tiles, a brushable 12-year timeline stacked by incident family, the campus map, the report feed and the breakdown panel](docs/screenshot.jpg)
+**[Open the live site](https://dipzinski.github.io/iit-public-surveillance/)**
+
+![IIT Public Surveillance: a full-screen map of Chicago with IIT report locations, a feed of citywide activity on the right and a slider of the newest reports along the bottom](docs/screenshot.jpg)
 
 ## What you can do
 
@@ -45,7 +47,7 @@ and weather alerts sit alongside them.
   or Export.
 - **Export** the current view as CSV.
 
-### Live around campus (add-ons)
+### Around campus (add-ons)
 
 ![Live around campus: four monitor-style camera widgets framing a live feed of campus reports, traffic incidents and 311 requests, each with its nearest camera](docs/live.jpg)
 
@@ -63,7 +65,28 @@ and weather alerts sit alongside them.
   to the city's delayed police radio audio on Broadcastify. Its terms don't allow
   embedding or transcribing that audio, so the app shows official reports instead.
 
-## Run it
+## Privacy
+
+The log is public, but a searchable map makes it much easier to point at one person.
+Reports about sexual offenses, stalking, partner violence, harassment, suicide or a
+mental health crisis keep their date and type but show no notes or location. Room
+numbers are removed from all other notes. The rules are in `safety/privacy.py`.
+
+## How it's published
+
+The [live site](https://dipzinski.github.io/iit-public-surveillance/) has no server.
+Every 30 minutes a GitHub Actions job runs the tests, pulls new log posts into a cached
+SQLite archive, calls the same feed code the local server uses, and writes the results
+as plain files for GitHub Pages (`tools/build_site.py`). The frontend is identical in
+both places.
+
+- A source that fails keeps its last good file, so one bad request never blanks a panel.
+- A build with far too few reports stops before publishing, so a parser break can't
+  replace the site.
+- Camera frames are saved on each build, so the live site shows snapshots with their
+  capture time. Running it locally shows frames as they arrive.
+
+## Run it locally
 
 Needs only **Python 3.9 or newer**. There's nothing to install and no build step.
 
@@ -78,8 +101,9 @@ Safety log in the background (31 requests, about a minute) while the page shows
 progress. After that it checks for new posts every 15 minutes.
 
 ```bash
-python3 -m unittest discover -s tests -t .   # 30 tests
+python3 -m unittest discover -s tests -t .   # the test suite
 python3 -m safety.sync --rebuild             # re-parse the stored posts after changing the parser
+python3 tools/build_site.py                  # build the static site into dist/
 PORT=9000 python3 server.py                  # another port
 ```
 
@@ -132,16 +156,17 @@ a fixed order.
 
 ```
 server.py              HTTP routes, camera relay, sync thread
-safety/                Public Safety archive: sync, store, parser, geocode, taxonomy, dataset
+safety/                Public Safety archive: sync, store, parser, geocode, taxonomy, privacy, dataset
 feeds.py               neighborhood add-ons: crime, traffic, alerts, 311
 common.py              shared helpers
-tools/                 street-model calibration
+tools/                 static site build, street-model calibration
+.github/workflows/     scheduled build and deploy to GitHub Pages
 data/site.json         campus location, outline, default cameras, contacts
 data/geo/              streets.json (calibrated), aliases.json (building names)
 static/js/safety/      main stage: state, timeline, map, feed, drawer, analytics
 static/js/live/        camera widgets, live feed + ticker, context cards
 static/js/palette.js   ⌘K command palette
-tests/                 parser, geocoder and API tests with real fixtures
+tests/                 parser, geocoder, privacy and API tests with real fixtures
 ```
 
 ## Data sources

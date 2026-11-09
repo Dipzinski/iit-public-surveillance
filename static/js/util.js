@@ -20,7 +20,7 @@ export function h(tag, attrs = {}, ...children) {
 }
 
 export async function getJSON(url) {
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(url, { cache: 'no-cache' });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
   return data;

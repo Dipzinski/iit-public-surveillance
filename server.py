@@ -32,6 +32,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import feeds
+from common import USER_AGENT
 from safety.dataset import Dataset
 from safety.store import Store
 from safety.sync import Sync
@@ -42,7 +43,6 @@ BOUNDARY_FILE = ROOT / "data" / "chicago_boundary.json"
 
 PORT = int(os.environ.get("PORT", "8000"))
 FEED_TTL_SECONDS = 60
-USER_AGENT = "ChicagoCameraDashboard/0.1 (+local dev)"
 
 # IDOT's public camera layer (also powers gettingaroundillinois.com).
 FEED_URL = (
@@ -199,6 +199,22 @@ class CameraFeed:
 FEED = CameraFeed()
 
 
+def fetch_snapshot(cam):
+    """Return (jpeg bytes, capture time). The snapshot host refuses a third-party Referer,
+    so frames are fetched here rather than loaded straight from the page."""
+    req = urllib.request.Request(cam["_snapshot"], headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        image = resp.read()
+        last_modified = resp.headers.get("Last-Modified")
+    captured = ""
+    if last_modified:
+        try:
+            captured = parsedate_to_datetime(last_modified).isoformat()
+        except (TypeError, ValueError):
+            pass
+    return image, captured
+
+
 # --- HTTP --------------------------------------------------------------------
 
 STORE = Store()
@@ -234,6 +250,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        if path.startswith("/api/"):
+            # The frontend asks for file-style names so it also runs as a static site.
+            path = re.sub(r"\.(json|jpg)$", "", path)
         if path == "/api/cameras":
             return self.send_cameras()
         if path == "/api/boundary":
@@ -310,22 +329,10 @@ class Handler(SimpleHTTPRequestHandler):
         if not cam:
             return self.send_json({"error": "unknown camera"}, HTTPStatus.NOT_FOUND)
 
-        # The snapshot host refuses requests carrying a third-party Referer, so the
-        # server fetches it directly and passes along when the frame was captured.
-        req = urllib.request.Request(cam["_snapshot"], headers={"User-Agent": USER_AGENT})
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                image = resp.read()
-                last_modified = resp.headers.get("Last-Modified")
+            image, captured = fetch_snapshot(cam)
         except (urllib.error.URLError, OSError) as exc:
             return self.send_json({"error": f"snapshot unavailable: {exc}"}, HTTPStatus.BAD_GATEWAY)
-
-        captured = ""
-        if last_modified:
-            try:
-                captured = parsedate_to_datetime(last_modified).isoformat()
-            except (TypeError, ValueError):
-                pass
 
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "image/jpeg")

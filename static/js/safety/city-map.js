@@ -388,7 +388,7 @@ export async function initCityMap() {
   }
 
   setData('campus', { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[...data.site.outline, data.site.outline[0]].map(([lat, lon]) => [lon, lat])] }, properties: {} });
-  fetch('api/boundary').then((r) => r.json()).then((b) => setData('boundary', { type: 'Feature', geometry: { type: b.type, coordinates: b.coordinates }, properties: {} })).catch(() => {});
+  fetch('api/boundary.json').then((r) => r.json()).then((b) => setData('boundary', { type: 'Feature', geometry: { type: b.type, coordinates: b.coordinates }, properties: {} })).catch(() => {});
 
   map = new maplibregl.Map({
     container: el,

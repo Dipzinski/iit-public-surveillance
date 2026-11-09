@@ -68,8 +68,8 @@ function campusItems() {
 
 async function collect() {
   const [traffic, alerts] = await Promise.all([
-    getJSON('/api/traffic').catch(() => null),
-    getJSON('/api/alerts').catch(() => null),
+    getJSON('api/traffic.json').catch(() => null),
+    getJSON('api/alerts.json').catch(() => null),
   ]);
   const items = campusItems();
 

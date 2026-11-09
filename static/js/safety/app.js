@@ -29,7 +29,7 @@ async function waitForArchive() {
   $('#hero').hidden = true;
   for (;;) {
     try {
-      const s = await getJSON('/api/safety/status');
+      const s = await getJSON('api/safety/status.json');
       const { phase, page, pages, fetched } = s.sync;
       $('#building-text').textContent = phase === 'backfill'
         ? `Downloading the Public Safety log: ${fetched.toLocaleString()} posts (page ${page} of ${pages || '…'})`
@@ -46,7 +46,7 @@ async function waitForArchive() {
 
 async function refreshStatus() {
   try {
-    const s = await getJSON('/api/safety/status');
+    const s = await getJSON('api/safety/status.json');
     const mies = Object.entries(s.byCampus).filter(([c]) => ['MIES', 'OFF', 'UNKNOWN'].includes(c)).reduce((n, [, v]) => n + v, 0);
     const synced = s.sync.lastSync ? `synced ${timeAgo(s.sync.lastSync * 1000)}` : s.sync.phase;
     $('#archive-status').textContent = `${mies.toLocaleString()} reports · ${s.firstLog.slice(0, 4)}–${s.lastLog.slice(0, 4)} · ${synced}`;
@@ -106,7 +106,7 @@ export async function startSafety() {
   initQuality();
   shortcuts();
 
-  const status = await getJSON('/api/safety/status').catch(() => null);
+  const status = await getJSON('api/safety/status.json').catch(() => null);
   loadedAt = status?.rebuiltAt || 0;
   $('#archive-update').addEventListener('click', () => location.reload());
   refreshStatus();

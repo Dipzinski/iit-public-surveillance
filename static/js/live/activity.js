@@ -81,9 +81,9 @@ async function load(key, path, layer) {
 }
 
 export function refreshActivity() {
-  load('police', 'api/chicago/police', setPoliceLayer);
-  load('crashes', 'api/chicago/crashes', setCrashLayer);
-  load('traffic', 'api/chicago/traffic', setTrafficLayer);
+  load('police', 'api/chicago/police.json', setPoliceLayer);
+  load('crashes', 'api/chicago/crashes.json', setCrashLayer);
+  load('traffic', 'api/chicago/traffic.json', setTrafficLayer);
 }
 
 export function initActivity() {

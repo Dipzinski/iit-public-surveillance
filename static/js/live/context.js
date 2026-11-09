@@ -14,8 +14,8 @@ const big = (value, label) => h('div', { class: 'cmp' }, h('b', {}, value), h('s
 export async function renderNeighborhood(ready) {
   const el = $('#neighborhood-body');
   const [crime, traffic] = await Promise.all([
-    getJSON('/api/crime').catch((e) => ({ error: e.message })),
-    getJSON('/api/traffic').catch((e) => ({ crashes: { error: e.message } })),
+    getJSON('api/crime.json').catch((e) => ({ error: e.message })),
+    getJSON('api/traffic.json').catch((e) => ({ crashes: { error: e.message } })),
   ]);
   await ready;
   const parts = [];
@@ -54,7 +54,7 @@ export async function renderNeighborhood(ready) {
 }
 
 export async function renderDispatch(site) {
-  const alerts = await getJSON('/api/alerts').catch(() => null);
+  const alerts = await getJSON('api/alerts.json').catch(() => null);
   const requests = alerts?.requests;
   $('#dispatch-body').replaceChildren(
     h('ul', { class: 'contacts' }, site.contacts.map((c) =>

@@ -18,7 +18,7 @@ const PLACEMENT = [
 const pct = (n, total) => `${Math.round((n / total) * 100)}%`;
 
 export async function initQuality() {
-  const s = await getJSON('/api/safety/status').catch(() => null);
+  const s = await getJSON('api/safety/status.json').catch(() => null);
   if (!s) return;
   const geoTotal = Object.values(s.geoQuality).reduce((a, b) => a + b, 0);
   const precise = ['address', 'building', 'intersection', 'block'].reduce((n, k) => n + (s.geoQuality[k] || 0), 0);

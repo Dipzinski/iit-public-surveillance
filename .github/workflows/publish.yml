@@ -1,0 +1,60 @@
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write # lets the last step keep this schedule from being auto-disabled
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the tests
+        run: python3 -m unittest discover -s tests -t .
+
+      # The archive and last good feeds carry over between runs. If they're ever
+      # evicted, the build downloads the whole log again in about a minute.
+      - name: Restore the archive
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/safety.db
+            dist/api
+          key: site-${{ github.run_id }}
+          restore-keys: site-
+
+      - name: Build the site
+        run: python3 tools/build_site.py
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      # GitHub turns off scheduled workflows after 60 days without repository activity.
+      - name: Keep the schedule on
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/publish.yml/enable"
