@@ -28,11 +28,12 @@
     <label class="searchbox">
       <span class="sr-only">Search every report</span>
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
-      <input id="search" type="search" placeholder="Search 12 years of reports — bike, Kacek, theft…" autocomplete="off" spellcheck="false">
+      <input id="search" type="search" placeholder="Search 12 years of reports…" autocomplete="off" spellcheck="false">
       <kbd>/</kbd>
     </label>
 
     <div class="status">
+      <a class="btn" href="reports.html" data-keep-filters>All reports</a>
       <button class="btn ghost palette-btn" id="palette-btn" type="button" title="Jump to anything (⌘K)">Jump to <kbd>⌘K</kbd></button>
       <span class="chip mono" id="archive-status" aria-live="polite">Loading archive…</span>
       <button class="btn primary" id="archive-update" type="button" hidden>New reports · reload</button>
@@ -63,23 +64,22 @@
 
     <aside class="card activity" aria-labelledby="activity-title">
       <header class="activity-head">
-        <h2 id="activity-title"><span class="live-dot" aria-hidden="true"></span>Chicago activity</h2>
+        <h2 id="activity-title">Chicago activity</h2>
         <div class="stream-filters" id="activity-tabs" role="group" aria-label="Show"></div>
       </header>
-      <a class="radio-link" href="https://www.broadcastify.com/listen/ctid/606" target="_blank" rel="noopener">
-        <span><b>Police radio audio</b><small>Released by the city after a delay</small></span>
-        <span class="radio-go">Listen ↗</span>
-      </a>
       <p class="hint activity-note" id="activity-note"></p>
       <div class="activity-list" id="activity-list"></div>
+      <a class="radio-link" href="https://www.broadcastify.com/listen/ctid/606" target="_blank" rel="noopener">
+        Police radio audio, released after a delay
+        <span class="radio-go">Listen ↗</span>
+      </a>
     </aside>
 
     <section class="dock" aria-labelledby="slider-title">
       <header class="dock-head">
         <div class="head-text">
-          <h2 id="slider-title">IIT Public Safety reports</h2>
+          <h2 id="slider-title"><span class="src iit">IIT</span> Public Safety reports</h2>
           <span class="hint mono" id="slider-count"></span>
-          <span class="hint dock-note" id="map-note"></span>
         </div>
         <div class="dock-controls">
           <div class="segs" id="slider-ranges" role="group" aria-label="Date range"></div>
@@ -93,6 +93,11 @@
   </section>
 
   <main id="safety" class="safety">
+    <header class="section-head">
+      <h2><span class="src iit">IIT Public Safety</span> The campus archive</h2>
+      <p class="subtitle">Everything in this section comes from Illinois Tech's own log. Chicago Police records appear only on the map and in the campus comparison further down, always marked CPD.</p>
+    </header>
+
     <div class="filterbar">
       <span class="filter-label">Filters</span>
       <div class="filter-chips" id="filter-chips"></div>
@@ -116,35 +121,11 @@
       <div class="legend-row" id="family-legend" role="group" aria-label="Incident families (click to filter)"></div>
       <div class="timeline-focus" id="timeline-focus"></div>
       <div class="timeline-context" id="timeline-context" aria-label="Whole archive; drag to choose dates"></div>
-      <p class="hint brush-hint">Drag across the bottom strip to choose dates · click a column to zoom in</p>
+      <footer class="card-foot">
+        <p class="hint brush-hint">Drag across the bottom strip to choose dates · click a column to zoom in</p>
+        <a class="btn" href="reports.html" data-keep-filters>See every report →</a>
+      </footer>
     </section>
-
-    <div class="stage">
-      <section class="card feed-panel" aria-labelledby="feed-title">
-        <header class="card-head">
-          <div class="head-text">
-            <h2 id="feed-title">Reports</h2>
-            <span class="hint mono" id="feed-count"></span>
-          </div>
-          <label class="select-wrap"><span class="sr-only">Sort</span>
-            <select id="feed-order"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
-          </label>
-        </header>
-        <div class="feed-list" id="feed-list" tabindex="-1"></div>
-        <p class="quiet feed-empty" id="feed-empty" hidden>No reports match these filters.</p>
-        <p class="hint feed-keys"><kbd>j</kbd> <kbd>k</kbd> step through · <kbd>Esc</kbd> close</p>
-      </section>
-
-      <section class="card facets-panel" aria-labelledby="facets-title">
-        <header class="card-head">
-          <h2 id="facets-title">Breakdown</h2>
-          <div class="segs" id="facet-tabs" role="tablist"></div>
-        </header>
-        <input class="facet-search" id="facet-search" type="search" placeholder="Find a type, place or outcome" autocomplete="off">
-        <ul class="facet-list" id="facet-list"></ul>
-        <p class="hint" id="facet-more"></p>
-      </section>
-    </div>
 
     <section class="analytics" aria-label="Patterns">
       <article class="card clock-card" aria-labelledby="clock-title">
@@ -163,7 +144,11 @@
         <header class="card-head"><h2 id="flow-title">What happens next</h2><span class="hint">incident family → recorded outcome</span></header>
         <div class="flow" id="flow"></div>
       </article>
+    </section>
 
+    <details class="more-patterns">
+      <summary>More patterns <span class="hint">every day on record, top locations, about this archive</span></summary>
+      <section class="analytics" aria-label="More patterns">
       <article class="card calendar-card" aria-labelledby="calendar-title">
         <header class="card-head">
           <div class="head-text"><h2 id="calendar-title">Every day on record</h2><span class="hint" id="calendar-note"></span></div>
@@ -182,12 +167,13 @@
         <header class="card-head"><h2 id="quality-title">About this archive</h2></header>
         <div class="quality" id="quality"></div>
       </article>
-    </section>
+      </section>
+    </details>
   </main>
 
   <aside class="drawer" id="drawer" hidden aria-labelledby="case-title">
     <div class="drawer-bar">
-      <span class="drawer-label mono">Case file</span>
+      <span class="drawer-label"><span class="src iit">IIT Public Safety</span> Case file</span>
       <button class="icon-btn" id="case-prev" type="button" aria-label="Previous report">‹</button>
       <button class="icon-btn" id="case-next" type="button" aria-label="Next report">›</button>
       <button class="icon-btn" id="case-close" type="button" aria-label="Close case file">✕</button>
@@ -208,6 +194,12 @@
         <button class="btn primary" id="refresh-btn" type="button">Refresh now</button>
       </div>
     </header>
+
+    <div class="ticker" id="ticker" hidden>
+      <span class="ticker-label mono">Latest</span>
+      <div class="ticker-viewport"></div>
+      <button class="ticker-btn" id="ticker-pause" type="button" aria-label="Pause ticker">❚❚</button>
+    </div>
 
     <div class="ops">
       <div class="ops-cams" id="cam-left" aria-label="Campus cameras"></div>
@@ -241,12 +233,6 @@
       with Illinois Tech.
     </p>
   </footer>
-
-  <div class="ticker" id="ticker" hidden>
-    <span class="ticker-label mono">Latest</span>
-    <div class="ticker-viewport"></div>
-    <button class="ticker-btn" id="ticker-pause" type="button" aria-label="Pause ticker">❚❚</button>
-  </div>
 
   <div class="toast" id="toast" role="status" hidden></div>
 

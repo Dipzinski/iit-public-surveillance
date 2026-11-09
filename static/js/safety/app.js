@@ -3,14 +3,13 @@
 
 import { $, h, getJSON, timeAgo } from '../util.js';
 import { BuildingArchive, loadDataset } from './data.js';
-import { init, filters, select, selection } from './state.js';
+import { init, filters } from './state.js';
 import { initFilterBar, toast } from './filterbar.js';
 import { initKpis } from './kpis.js';
 import { initTimeline } from './timeline.js';
 import { initCityMap } from './city-map.js';
 import { initSlider } from './slider.js';
-import { initFeed, step } from './feed.js';
-import { initFacets } from './facets.js';
+import { initShortcuts } from './feed.js';
 import { initDrawer } from './drawer.js';
 import { initClock } from './clock.js';
 import { initPunchcard } from './punchcard.js';
@@ -59,21 +58,6 @@ async function refreshStatus() {
   }
 }
 
-function shortcuts() {
-  document.addEventListener('keydown', (e) => {
-    const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
-    if (e.key === 'Escape') {
-      if (typing) e.target.blur();
-      else if (selection.index != null) select(null);
-      return;
-    }
-    if (typing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-    if (e.key === '/') { e.preventDefault(); $('#search').focus(); }
-    else if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
-    else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
-  });
-}
-
 export async function startSafety() {
   let data;
   for (;;) {
@@ -95,8 +79,6 @@ export async function startSafety() {
   initTimeline();
   await initCityMap();
   initSlider();
-  initFeed();
-  initFacets();
   initDrawer();
   initClock();
   initPunchcard();
@@ -104,7 +86,7 @@ export async function startSafety() {
   initCalendar();
   initPlaces();
   initQuality();
-  shortcuts();
+  initShortcuts();
 
   const status = await getJSON('api/safety/status.json').catch(() => null);
   loadedAt = status?.rebuiltAt || 0;

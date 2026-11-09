@@ -8,7 +8,7 @@ and weather alerts sit alongside them.
 
 **[Open the live site](https://dipzinski.github.io/iit-public-surveillance/)**
 
-![IIT Public Surveillance: a full-screen map of Chicago with IIT report locations, a feed of citywide activity on the right and a slider of the newest reports along the bottom](docs/screenshot.jpg)
+![IIT Public Surveillance: an angled satellite view of the Mies Campus with IIT Public Safety reports in red and Chicago Police reports in blue, a Chicago Police feed on the right and a slider of the newest IIT reports along the bottom](docs/screenshot.jpg)
 
 ## What you can do
 
@@ -21,13 +21,18 @@ and weather alerts sit alongside them.
 - **Brush the timeline.** The bottom strip shows the whole archive; drag across it
   to pick dates. The chart above shows those dates stacked by family, binned by
   day, week or month to fit. Click a column to zoom in.
-- **Full-screen map of Chicago.** The app opens on a vector map of the whole city:
-  every street, transit stop, point of interest and 3D building, in Detailed, Streets
-  or Satellite styles. Each IIT report location is sized by its report count, and
-  reports from the last 7 days pulse. **Replay** animates the chosen dates, with each
+- **Full-screen map.** The app opens on an angled satellite view of the Mies Campus.
+  One click zooms out to all of Chicago, and Detailed and Streets styles show every
+  street, transit stop, point of interest and 3D building. Each IIT report location is
+  sized by its report count, and reports from the last 7 days pulse.
+- **IIT and CPD records never blur together.** IIT Public Safety records are always red
+  and marked IIT. Chicago Police records are always blue and marked CPD, on the map, in
+  popups, in the feeds and in the campus comparison. **Replay** animates the chosen dates, with each
   report appearing on its building in its family color.
 - **Report slider.** The newest reports sit in a draggable row along the bottom of the
   map. Opening one flies the map to that building and opens its case file.
+- **Reports page.** Every report in one fast scrolling list with a breakdown by type,
+  place and outcome, on its own page. Filters carry over from the map.
 - **Chicago activity.** A Citizen-style feed of citywide Chicago Police reports, crashes
   with injuries and live traffic incidents, each one tappable on the map.
 - **Case files.** Open any report (or step through with `j`/`k`) to see the full
@@ -57,7 +62,7 @@ and weather alerts sit alongside them.
   incidents, weather warnings and city 311 requests.
 - **Nearest camera.** Every feed item with a location shows the frame from the
   traffic camera nearest to it. Campus reports open their case file.
-- **Ticker.** The latest items scroll along the bottom of the screen like a news
+- **Ticker.** The latest items scroll along the top of this section like a news
   crawl. A severe weather warning also takes over the top banner.
 - **On campus vs. the blocks around it.** Public Safety reports compared with
   Chicago Police reports within ½ mile over the same dates, plus crash patterns.
@@ -163,6 +168,8 @@ tools/                 static site build, street-model calibration
 .github/workflows/     scheduled build and deploy to GitHub Pages
 data/site.json         campus location, outline, default cameras, contacts
 data/geo/              streets.json (calibrated), aliases.json (building names)
+static/index.html      the map and dashboard page
+static/reports.html    the full report list (static/js/reports.js)
 static/js/safety/      main stage: state, timeline, map, feed, drawer, analytics
 static/js/live/        camera widgets, live feed + ticker, context cards
 static/js/palette.js   ⌘K command palette

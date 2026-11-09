@@ -3,19 +3,19 @@
 // Broadcastify, so the feed links to it instead of reproducing it.
 
 import { $, h, getJSON, timeAgo, formatDate } from '../util.js';
-import { FAMILY_COLORS } from '../safety/colors.js';
+import { sourceBadge } from '../safety/colors.js';
 import { setCrashLayer, setPoliceLayer, setTrafficLayer, showOnMap } from '../safety/city-map.js';
 
 const MAX_CARDS = 150;
 const state = { tab: 'police', police: null, crashes: null, traffic: null };
 
-const TABS = [['police', 'Police'], ['crashes', 'Injury crashes'], ['traffic', 'Live traffic']];
+const TABS = [['police', 'CPD'], ['crashes', 'Injury crashes'], ['traffic', 'Live traffic']];
 const when = (item) => item.when || item.start;
 
 const NOTES = {
   police() {
     const latest = state.police?.latest;
-    return latest ? `Official reports, newest ${formatDate(latest)}. The city publishes them about a week late.` : '';
+    return latest ? `Chicago Police records, not IIT. Newest ${formatDate(latest)}; the city publishes them about a week late.` : '';
   },
   crashes: () => 'Crashes with injuries reported to Chicago Police in the last 4 days.',
   traffic: () => 'Live incidents from Illinois DOT.',
@@ -23,11 +23,11 @@ const NOTES = {
 
 const CARD = {
   police: (r) => ({
-    dot: FAMILY_COLORS[r.family] || FAMILY_COLORS.other, title: r.type, detail: r.detail,
+    source: 'cpd', title: r.type, detail: r.detail,
     where: [r.block, r.area].filter(Boolean).join(' · '), tags: r.arrest ? ['Arrest made'] : [],
   }),
   crashes: (c) => ({
-    dot: FAMILY_COLORS.traffic, title: `${c.injuries} injured in crash`, detail: c.type, where: c.address,
+    source: 'cpd', title: `${c.injuries} injured in crash`, detail: c.type, where: c.address,
     tags: [c.fatal ? `${c.fatal} killed` : '', c.hitAndRun ? 'Hit-and-run' : ''].filter(Boolean),
   }),
   traffic: (i) => ({
@@ -37,14 +37,14 @@ const CARD = {
 };
 
 function callout(view, item) {
-  return h('div', { class: 'tip' }, h('strong', {}, view.title), view.detail && h('div', { class: 'tip-row' }, view.detail),
+  return h('div', { class: 'tip' }, view.source && sourceBadge(view.source, true), h('strong', {}, view.title), view.detail && h('div', { class: 'tip-row' }, view.detail),
     view.where && h('div', { class: 'tip-row' }, view.where), h('div', { class: 'tip-row muted' }, timeAgo(when(item))));
 }
 
 function card(item) {
   const view = CARD[state.tab](item);
-  return h('button', { type: 'button', class: 'cz', style: `--dot:${view.dot}`, onclick: () => showOnMap(item.lat, item.lon, callout(view, item)) },
-    h('span', { class: 'cz-dot', 'aria-hidden': 'true' }),
+  return h('button', { type: 'button', class: `cz${view.source ? ` ${view.source}` : ''}`, style: view.dot ? `--dot:${view.dot}` : null, onclick: () => showOnMap(item.lat, item.lon, callout(view, item)) },
+    view.source ? sourceBadge(view.source) : h('span', { class: 'cz-dot', 'aria-hidden': 'true' }),
     h('span', { class: 'cz-body' },
       h('span', { class: 'cz-top' }, h('strong', {}, view.title), h('time', { class: 'mono' }, timeAgo(when(item)))),
       view.detail && h('span', { class: 'cz-detail' }, view.detail),

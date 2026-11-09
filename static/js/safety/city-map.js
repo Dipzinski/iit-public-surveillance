@@ -6,7 +6,7 @@
 import { $, h, timeAgo, formatDateTime } from '../util.js';
 import { dataset, filtered, filters, selection, subscribe, toggle } from './state.js';
 import { formatDay, today } from './data.js';
-import { FAMILY_COLORS, familyColor } from './colors.js';
+import { FAMILY_COLORS, SOURCE_COLORS, familyColor, sourceBadge } from './colors.js';
 
 const LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
 const IMAGERY = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -14,9 +14,12 @@ const CHICAGO = [[-87.94, 41.64], [-87.52, 42.03]];
 const STATUS = { critical: '#d03b3b', warning: '#fab219' };
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
+const CAMPUS_VIEW = { zoom: 15.6, pitch: 58, bearing: -18 };
+
+// key, label, color, and whether the chip names a record source (those double as the map legend).
 const LAYER_CHIPS = [
-  ['places', 'IIT reports', '#5cc8ff'],
-  ['police', 'Police reports', FAMILY_COLORS.person],
+  ['places', 'IIT Public Safety', SOURCE_COLORS.iit, true],
+  ['police', 'Chicago Police (CPD)', SOURCE_COLORS.cpd, true],
   ['crashes', 'Injury crashes', FAMILY_COLORS.traffic],
   ['traffic', 'Live traffic', STATUS.warning],
   ['cameras', 'Cameras', '#e8edf4'],
@@ -32,7 +35,7 @@ const CHIP_LAYERS = {
 
 let map;
 let styles;
-let styleName = 'detail';
+let styleName = 'satellite';
 let center;
 let framed = false;
 let lastPick = null;
@@ -53,7 +56,7 @@ const sources = {
   boundary: EMPTY, campus: EMPTY, places: EMPTY, picked: EMPTY, replay: EMPTY,
   police: EMPTY, crashes: EMPTY, traffic: EMPTY, cameras: EMPTY,
 };
-const shown = { places: true, police: true, crashes: true, traffic: true, cameras: true };
+const shown = { places: true, police: true, crashes: false, traffic: false, cameras: false };
 
 const point = (lon, lat, properties) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties });
 const collection = (features) => ({ type: 'FeatureCollection', features });
@@ -143,7 +146,7 @@ function addOverlays() {
   });
   add({
     id: 'police-dots', type: 'circle', source: 'police', minzoom: 12,
-    paint: { 'circle-radius': zoomed(3, 7), 'circle-color': ['get', 'color'], 'circle-stroke-color': '#0b0e13', 'circle-stroke-width': 1.5, 'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.95] },
+    paint: { 'circle-radius': zoomed(3, 7), 'circle-color': SOURCE_COLORS.cpd, 'circle-stroke-color': '#f5f7fa', 'circle-stroke-width': 1.5, 'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.95], 'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.95] },
   });
   add({ id: 'crashes-dots', type: 'circle', source: 'crashes', minzoom: 10.5, paint: { 'circle-radius': zoomed(3.5, 8), 'circle-color': FAMILY_COLORS.traffic, 'circle-stroke-color': '#0b0e13', 'circle-stroke-width': 1.5 } });
   add({ id: 'traffic-dots', type: 'circle', source: 'traffic', paint: { 'circle-radius': zoomed(4.5, 10), 'circle-color': ['get', 'color'], 'circle-stroke-color': '#0b0e13', 'circle-stroke-width': 2 } });
@@ -152,10 +155,10 @@ function addOverlays() {
     id: 'places-circles', type: 'circle', source: 'places',
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, ['+', 2, ['*', 5, ['sqrt', ['get', 'share']]]], 16, ['+', 5, ['*', 30, ['sqrt', ['get', 'share']]]]],
-      'circle-color': '#5cc8ff',
-      'circle-opacity': ['case', ['==', ['get', 'dim'], 1], 0.2, 0.62],
-      'circle-stroke-color': ['case', ['==', ['get', 'on'], 1], '#f5f7fa', '#0b0e13'],
-      'circle-stroke-width': ['case', ['==', ['get', 'on'], 1], 3, 1.5],
+      'circle-color': SOURCE_COLORS.iit,
+      'circle-opacity': ['case', ['==', ['get', 'dim'], 1], 0.25, 0.8],
+      'circle-stroke-color': '#f5f7fa',
+      'circle-stroke-width': ['case', ['==', ['get', 'on'], 1], 4, 2],
     },
   });
   add({ id: 'picked-ring', type: 'circle', source: 'picked', paint: { 'circle-radius': 16, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f5f7fa', 'circle-stroke-width': 3 } });
@@ -171,14 +174,14 @@ function applyVisibility() {
 
 // ---------- popups ----------
 
-const tip = (title, ...lines) => h('div', { class: 'tip' }, h('strong', {}, title), lines.filter(Boolean).map((l) => h('div', { class: 'tip-row' }, l)));
+const tip = (source, title, ...lines) => h('div', { class: 'tip' }, source && sourceBadge(source, true), h('strong', {}, title), lines.filter(Boolean).map((l) => h('div', { class: 'tip-row' }, l)));
 
 const TIPS = {
-  'police-dots': (p) => tip(p.type, p.detail, [p.block, p.area].filter(Boolean).join(' · '), `${formatDateTime(p.when)} · ${timeAgo(p.when)}`, p.arrest ? 'Arrest made' : ''),
-  'crashes-dots': (p) => tip(`Injury crash · ${p.type}`, p.address, `${p.injuries} injured${p.fatal ? `, ${p.fatal} killed` : ''}${p.hitAndRun ? ' · hit-and-run' : ''}`, `${formatDateTime(p.when)} · ${timeAgo(p.when)}`),
-  'traffic-dots': (p) => tip(`${p.kind}${p.road ? ` · ${p.road}` : ''}`, p.description === 'Closed.' ? '' : p.description, p.start ? `Since ${formatDateTime(p.start)}` : ''),
-  'camera-dots': (p) => tip(p.name, p.roadName, 'Click to view'),
-  'places-circles': (p) => tip(p.name, p.address, `${p.count.toLocaleString()} ${p.count === 1 ? 'report' : 'reports'} · latest ${p.latest}`, `Mostly ${p.top.toLowerCase()}`, filters.places.has(p.g) ? 'Click to clear' : 'Click to filter'),
+  'police-dots': (p) => tip('cpd', p.type, p.detail, [p.block, p.area].filter(Boolean).join(' · '), `${formatDateTime(p.when)} · ${timeAgo(p.when)}`, p.arrest ? 'Arrest made' : ''),
+  'crashes-dots': (p) => tip('cpd', `Injury crash · ${p.type}`, p.address, `${p.injuries} injured${p.fatal ? `, ${p.fatal} killed` : ''}${p.hitAndRun ? ' · hit-and-run' : ''}`, `${formatDateTime(p.when)} · ${timeAgo(p.when)}`),
+  'traffic-dots': (p) => tip(null, `${p.kind}${p.road ? ` · ${p.road}` : ''}`, p.description === 'Closed.' ? '' : p.description, p.start ? `Since ${formatDateTime(p.start)}` : ''),
+  'camera-dots': (p) => tip(null, p.name, p.roadName, 'Click to view'),
+  'places-circles': (p) => tip('iit', p.name, p.address, `${p.count.toLocaleString()} ${p.count === 1 ? 'report' : 'reports'} · latest ${p.latest}`, `Mostly ${p.top.toLowerCase()}`, filters.places.has(p.g) ? 'Click to clear' : 'Click to filter'),
 };
 
 function wirePopups() {
@@ -215,7 +218,7 @@ export function viewChicago() {
 }
 
 export function viewCampus() {
-  if (map) go({ center: [center.lon, center.lat], zoom: 15.6, pitch: 58, bearing: -18 });
+  if (map) go({ center: [center.lon, center.lat], ...CAMPUS_VIEW });
 }
 
 // Fly to a point from the activity feed and pin its details there.
@@ -228,7 +231,7 @@ export function showOnMap(lat, lon, content) {
 // ---------- data from other modules ----------
 
 export function setPoliceLayer(items) {
-  setData('police', collection(items.map((r) => point(r.lon, r.lat, { ...r, color: FAMILY_COLORS[r.family] || FAMILY_COLORS.other }))));
+  setData('police', collection(items.map((r) => point(r.lon, r.lat, r))));
 }
 export function setCrashLayer(items) {
   setData('crashes', collection(items.map((c) => point(c.lon, c.lat, c))));
@@ -292,7 +295,7 @@ function render() {
     });
   });
   setData('places', collection(features));
-  $('#map-note').textContent = `${(rows.length - unplaced).toLocaleString()} reports at ${stats.size} places · ${unplaced.toLocaleString()} without a precise location`;
+  $('#slider-count').title = `${(rows.length - unplaced).toLocaleString()} reports at ${stats.size} places · ${unplaced.toLocaleString()} without a precise location`;
   renderPick();
 }
 
@@ -365,10 +368,16 @@ function renderTools() {
       map.setStyle(styles[key], { diff: false });
       renderTools();
     })));
-  $('#map-layers').replaceChildren(...LAYER_CHIPS.map(([key, label, color]) => h('button', {
-    type: 'button', class: `layer-chip${shown[key] ? ' on' : ''}`, 'aria-pressed': String(shown[key]),
+  $('#map-layers').replaceChildren(...LAYER_CHIPS.map(([key, label, color, source]) => h('button', {
+    type: 'button', class: `layer-chip${shown[key] ? ' on' : ''}${source ? ' source' : ''}`, style: `--chip:${color}`, 'aria-pressed': String(shown[key]),
     onclick: () => { shown[key] = !shown[key]; applyVisibility(); renderTools(); },
   }, h('i', { class: 'swatch', style: `background:${color}` }), label)));
+}
+
+// Also used alone by the Reports page, for the case file's mini-map.
+export async function loadMapStyles() {
+  const base = await (await fetch(LIBERTY)).json();
+  styles = { detail: darkStyle(base), streets: base, satellite: satelliteStyle(base) };
 }
 
 export async function initCityMap() {
@@ -380,8 +389,7 @@ export async function initCityMap() {
     return;
   }
   try {
-    const base = await (await fetch(LIBERTY)).json();
-    styles = { detail: darkStyle(base), streets: base, satellite: satelliteStyle(base) };
+    await loadMapStyles();
   } catch (err) {
     el.replaceChildren(h('div', { class: 'map-error' }, `The map couldn't load: ${err.message}`));
     return;
@@ -392,12 +400,13 @@ export async function initCityMap() {
 
   map = new maplibregl.Map({
     container: el,
-    style: styles.detail,
-    bounds: CHICAGO,
-    fitBoundsOptions: { padding: padding() },
+    style: styles[styleName],
+    center: [center.lon, center.lat],
+    ...CAMPUS_VIEW,
     maxZoom: 20,
     maxPitch: 75,
   });
+  map.setPadding(padding()); // frame the campus in the part of the map the panels don't cover
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
   map.addControl(new maplibregl.ScaleControl({ unit: 'imperial' }), 'bottom-left');
   map.on('style.load', addOverlays);
@@ -406,7 +415,9 @@ export async function initCityMap() {
 
   const beacon = h('button', { type: 'button', class: 'beacon', onclick: viewCampus, 'aria-label': 'Zoom to IIT Mies Campus' }, h('i', {}), h('b', {}, data.site.name));
   new maplibregl.Marker({ element: beacon }).setLngLat([center.lon, center.lat]).addTo(map);
-  map.on('zoom', () => beacon.classList.toggle('hide', map.getZoom() > 14.2));
+  const syncBeacon = () => beacon.classList.toggle('hide', map.getZoom() > 14.2);
+  map.on('zoom', syncBeacon);
+  syncBeacon();
 
   renderTools();
   $('#view-chicago').addEventListener('click', viewChicago);

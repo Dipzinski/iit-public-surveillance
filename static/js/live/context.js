@@ -3,12 +3,13 @@
 import { $, h, getJSON } from '../util.js';
 import { barList, hourChart } from '../charts.js';
 import { dataset } from '../safety/state.js';
+import { sourceBadge } from '../safety/colors.js';
 
 const IIT_ALERT_URL = 'https://www.iit.edu/iitalert';
 const SCANNER_URL = 'https://www.broadcastify.com/listen/ctid/606';
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Chicago' });
 
-const big = (value, label) => h('div', { class: 'cmp' }, h('b', {}, value), h('span', {}, label));
+const big = (source, value, label) => h('div', { class: 'cmp' }, sourceBadge(source), h('b', {}, value), h('span', {}, label));
 
 // On campus (IIT Public Safety) vs. the blocks around it (Chicago Police), over the same dates.
 export async function renderNeighborhood(ready) {
@@ -29,9 +30,9 @@ export async function renderNeighborhood(ready) {
     const campus = data ? data.incidents.t.filter((t) => t >= from && t < to).length : null;
     parts.push(
       h('div', { class: 'cmp-row' },
-        big(campus == null ? '—' : campus.toLocaleString(), 'IIT Public Safety reports on campus'),
+        big('iit', campus == null ? '—' : campus.toLocaleString(), 'IIT Public Safety reports on campus'),
         h('span', { class: 'cmp-vs mono' }, 'vs'),
-        big(crime.total.toLocaleString(), `Chicago Police reports within ${crime.radiusMi} mi`)),
+        big('cpd', crime.total.toLocaleString(), `Chicago Police reports within ${crime.radiusMi} mi`)),
       h('p', { class: 'note' }, `${dateFmt.format(new Date(crime.windowStart))} – ${dateFmt.format(new Date(crime.latest))}, the latest 30 days the city has published (it runs about a week behind). `,
         'Police reports cover the streets, businesses and homes around campus; Public Safety covers campus property.'),
       h('div', { class: 'ctx-cols' },

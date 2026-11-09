@@ -29,6 +29,8 @@ function render() {
   $('#filter-chips').replaceChildren(...chips);
   $('#clear-filters').hidden = activeCount() === 0;
   if (document.activeElement !== $('#search')) $('#search').value = filters.q;
+  // Links between the map and Reports pages carry the current filters along.
+  for (const a of document.querySelectorAll('a[data-keep-filters]')) a.hash = location.hash;
 }
 
 function toast(text) {

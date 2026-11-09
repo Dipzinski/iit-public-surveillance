@@ -70,13 +70,31 @@ function render() {
 
 // Move the selection by `delta` rows and keep it in view.
 export function step(delta) {
-  if (!rows.length) return;
-  const k = rows.indexOf(selection.index);
-  const next = Math.min(rows.length - 1, Math.max(0, k === -1 ? 0 : k + delta));
-  const top = next * ROW;
-  if (top < list.scrollTop) list.scrollTop = top;
-  else if (top + ROW > list.scrollTop + list.clientHeight) list.scrollTop = top + ROW - list.clientHeight;
-  select(rows[next]);
+  const order = list ? rows : filtered(); // the map page has no list, only the same filtered reports
+  if (!order.length) return;
+  const k = order.indexOf(selection.index);
+  const next = Math.min(order.length - 1, Math.max(0, k === -1 ? 0 : k + delta));
+  if (list) {
+    const top = next * ROW;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (top + ROW > list.scrollTop + list.clientHeight) list.scrollTop = top + ROW - list.clientHeight;
+  }
+  select(order[next]);
+}
+
+export function initShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+    if (e.key === 'Escape') {
+      if (typing) e.target.blur();
+      else if (selection.index != null) select(null);
+      return;
+    }
+    if (typing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+    if (e.key === '/') { e.preventDefault(); $('#search').focus(); }
+    else if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+    else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
+  });
 }
 
 export function currentRows() {

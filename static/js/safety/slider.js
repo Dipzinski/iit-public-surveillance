@@ -4,7 +4,7 @@
 import { $, h } from '../util.js';
 import { dataset, filtered, select, selection, subscribe } from './state.js';
 import { formatDay, formatClock } from './data.js';
-import { familyColor } from './colors.js';
+import { sourceBadge } from './colors.js';
 import { renderQuickRanges } from './timeline.js';
 
 const MAX_CARDS = 120;
@@ -18,10 +18,11 @@ function card(i) {
   const inc = data.incidents;
   const disp = data.dispositions[inc.disp[i]];
   return h('button', {
-    type: 'button', class: 'rcard', 'data-i': i, style: `--fam:${familyColor(data.families[inc.family[i]])}`,
+    type: 'button', class: 'rcard', 'data-i': i,
     onclick: () => { if (!dragged) select(i); },
   },
-    h('span', { class: 'rcard-when mono' }, `${formatDay(data.day[i])}${inc.approx[i] ? '' : ` · ${formatClock(inc.t[i])}`}`),
+    h('span', { class: 'rcard-top' }, sourceBadge('iit'),
+      h('span', { class: 'rcard-when mono' }, `${formatDay(data.day[i])}${inc.approx[i] ? '' : ` · ${formatClock(inc.t[i])}`}`)),
     h('strong', {}, data.types[inc.type[i]]),
     h('span', { class: 'rcard-place' }, data.groups[data.group[i]].name),
     h('span', { class: 'rcard-notes' }, inc.notes[i] || disp || 'No notes in the log.'));

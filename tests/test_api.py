@@ -59,6 +59,12 @@ class ApiTests(unittest.TestCase):
         with self.get("/api/safety/dataset.json") as resp:
             self.assertEqual(resp.status, 200)
 
+    def test_reports_list_is_on_its_own_page(self):
+        with self.get("/reports.html") as resp:
+            self.assertIn('id="feed-list"', resp.read().decode())
+        with self.get("/") as resp:
+            self.assertNotIn('id="feed-list"', resp.read().decode())
+
     def test_dataset_etag_gives_304(self):
         with self.get("/api/safety/dataset") as resp:
             etag = resp.headers["ETag"]

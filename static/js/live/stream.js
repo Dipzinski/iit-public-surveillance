@@ -4,7 +4,7 @@
 
 import { $, h, getJSON, timeAgo, formatMiles } from '../util.js';
 import { dataset, select } from '../safety/state.js';
-import { familyColor } from '../safety/colors.js';
+import { SOURCE_COLORS, sourceBadge } from '../safety/colors.js';
 import { nearestCamera, snapshotUrl } from './frames.js';
 import { areaCameras, openViewer } from './widgets.js';
 
@@ -13,14 +13,13 @@ const CAMERA_MAX_MI = 1.2; // only show a "nearest camera" that is actually near
 const SEVERITY = { Extreme: 'critical', Severe: 'critical', Moderate: 'serious', Minor: 'warning' };
 
 const ICONS = {
-  campus: 'M10 2 3 5v5c0 4.2 3 7.4 7 8 4-.6 7-3.8 7-8V5z',
   traffic: 'M10 2 2 17h16zM10 7v5M10 14.5v.5',
   weather: 'M6 15h8a4 4 0 0 0 .5-8A5 5 0 0 0 5 8a3.5 3.5 0 0 0 1 7zM8 18l1-2M12 18l1-2',
   city: 'M4 17h12M6 17V8l4-4 4 4v9M9 17v-4h2v4',
 };
 const SOURCES = [
   ['all', 'All'],
-  ['campus', 'Campus safety'],
+  ['campus', 'IIT Public Safety'],
   ['traffic', 'Traffic'],
   ['weather', 'Weather'],
   ['city', 'City 311'],
@@ -56,7 +55,7 @@ function campusItems() {
       title: data.types[inc.type[i]],
       meta: [place.name, data.dispositions[inc.disp[i]]].filter(Boolean).join(' · '),
       text: inc.notes[i],
-      accent: familyColor(data.families[inc.family[i]]),
+      accent: SOURCE_COLORS.iit,
       tag: data.families[inc.family[i]].label,
       lat: place.mappable ? place.lat : null,
       lon: place.mappable ? place.lon : null,
@@ -118,7 +117,7 @@ function card(item, isNew) {
   },
     h('div', { class: 'ev-body', role: item.open ? 'button' : null, tabindex: item.open ? '0' : null,
       onclick: item.open || null, onkeydown: item.open ? (e) => { if (e.key === 'Enter') item.open(); } : null },
-      h('div', { class: 'ev-top' }, icon(item.kind), h('span', { class: 'ev-src' }, SOURCES.find(([k]) => k === item.kind)[1]),
+      h('div', { class: 'ev-top' }, item.kind === 'campus' ? sourceBadge('iit', true) : [icon(item.kind), h('span', { class: 'ev-src' }, SOURCES.find(([k]) => k === item.kind)[1])],
         isNew && h('span', { class: 'ev-new' }, 'New'), h('span', { class: 'ev-time mono' }, timeAgo(item.time))),
       h('strong', { class: 'ev-title' }, item.title),
       h('div', { class: 'ev-meta' }, levelBadge, h('span', {}, item.meta)),
@@ -157,7 +156,6 @@ function renderTicker() {
   track.style.setProperty('--ticker-duration', `${Math.max(40, items.length * 7)}s`);
   ticker.querySelector('.ticker-viewport').replaceChildren(track);
   ticker.hidden = false;
-  document.body.classList.add('has-ticker');
 }
 
 // Severe weather is the one thing that should be loud: put it across the top.
